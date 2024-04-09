@@ -159,7 +159,7 @@ namespace KozossegiAPI.UnitTests.Repo
                 Assert.That(result, Is.Not.Null);
                 Assert.That(result.First().ChatContents, Is.Not.Empty);
                 if (userId == 1)
-                Assert.That(result, Is.Ordered.By("sentDate").Then.By("endedDateTime"));
+                    Assert.That(result, Is.Ordered.By("sentDate").Then.By("endedDateTime"));
             }
         }
 
@@ -228,10 +228,27 @@ namespace KozossegiAPI.UnitTests.Repo
                     }
                 };
 
-                var  result = await _chatRepository.GetMessagePartnersById(fakeChatRoom, 1);
+                var result = await _chatRepository.GetMessagePartnersById(fakeChatRoom, 1);
 
                 Assert.That(result.Count, Is.EqualTo(2));
                 Assert.That(result.First().id, Is.Not.EqualTo(1));
+            }
+        }
+
+        [Test]
+        [TestCase(1)]
+        [TestCase(2)]
+        public async Task GetChatPartenterIds(int userId)
+        {
+            using (var scope = _serviceProvider.CreateScope())
+            {
+                SetupDb(scope);
+                CreateFakeDb();
+
+                var result = _chatRepository.GetChatPartenterIds(userId);
+
+                Assert.That(result, Is.Not.Null);
+                Assert.That(result.Count, userId == 1 ? Is.EqualTo(1) : Is.EqualTo(2));
             }
         }
     }
