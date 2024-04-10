@@ -88,7 +88,8 @@ namespace KozossegiAPI.UnitTests.Repo
                     id = 1,
                     firstName = "Gipsz",
                     lastName = "Jakab",
-                    isMale = false,
+                    isMale = true,
+                    DateOfBirth = DateOnly.FromDateTime(DateTime.Now)
                 },
                 new Personal()
                 {
@@ -96,10 +97,20 @@ namespace KozossegiAPI.UnitTests.Repo
                     firstName = "Teszt",
                     lastName = "Elek",
                     isMale = false,
+                    DateOfBirth = DateOnly.FromDateTime(DateTime.Now.AddDays(-1))
+                },
+                new Personal()
+                {
+                    id = 3,
+                    firstName = "Teszt1",
+                    lastName = "Elek1",
+                    isMale = true,
+                    DateOfBirth = DateOnly.FromDateTime(DateTime.Now.AddDays(-10))
                 }
                 }.AsEnumerable();
             return users;
         }
+
 
         public static IEnumerable<user> GetUser_Table()
         {
@@ -166,7 +177,6 @@ namespace KozossegiAPI.UnitTests.Repo
             mock.Setup(u => u.GetAll(1)).Returns(() => Task.FromResult(expected.AsEnumerable()));
             var result = await mock.Object.GetAll(1);
 
-            Assert.That(users.Count(), Is.EqualTo(2));
             Assert.Contains(expected.FirstOrDefault(), result.ToList());
             Assert.That(result, Is.Not.Null);
         }
@@ -329,32 +339,21 @@ namespace KozossegiAPI.UnitTests.Repo
             {
                 SetupDb(scope);
                 var today = DateTime.Now;
-                var birthdayUsers = new List<Personal>() {
-                    new Personal()
-                    {
-                        id = 1,
-                        DateOfBirth = DateOnly.FromDateTime(today),
-                    },
-                    new Personal()
-                    {
-                        id = 2,
-                        DateOfBirth = DateOnly.FromDateTime(today),
-                    },
-                    new Personal()
-                    {
-                        id = 3,
-                        DateOfBirth = DateOnly.FromDateTime(today.AddDays(-1)),
-                    },
-                };
+                var birtdayUsers = GetUsers();
 
-                await _dbContext.AddRangeAsync(birthdayUsers); 
+                await _dbContext.AddRangeAsync(birtdayUsers); 
                 await _dbContext.SaveChangesAsync();
 
-                var celebrates = await _friendRepository.GetAllUserWhoHasBirthdayToday();
-                Assert.That(celebrates.Count(), Is.EqualTo(2));
-                Assert.That(birthdayUsers.Count(), Is.EqualTo(3));
+                var result = await _friendRepository.GetAllUserWhoHasBirthdayToday();
+
+                var expected = result.FirstOrDefault();
+                Assert.That(result.Count(), Is.EqualTo(1));
+                Assert.That(expected.id, Is.EqualTo(1));
+                Assert.That(expected.DateOfBirth, Is.EqualTo(DateOnly.FromDateTime(DateTime.Now)));
             }
         }
+
+
         [TearDown]
         public void Cleanup()
         {
