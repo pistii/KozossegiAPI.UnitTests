@@ -75,8 +75,8 @@ namespace KozossegiAPI.UnitTests.FriendControllerTests
             expected = null;
             _friendRepositoryMock.Setup(repo => repo.FriendshipExists(It.IsAny<Friend_notificationId>()).Result)
                 .Returns(expected);
-            _notificationRepositoryMock.Setup(repo => repo.GetNotification(It.IsAny<Friend_notificationId>()).Result).Returns(receiverUserNotification);
-            _notificationRepositoryMock.Setup(repo => repo.Update(It.IsAny<Notification?>()));
+            _notificationRepositoryMock.Setup(repo => repo.GetByIdAsync<Notification>(It.IsAny<int>()).Result).Returns(receiverUserNotification);
+            _notificationRepositoryMock.Setup(repo => repo.UpdateAsync<Notification>(It.IsAny<Notification?>()));
         }
 
         [Test]
@@ -253,8 +253,8 @@ namespace KozossegiAPI.UnitTests.FriendControllerTests
             });
 
             Notification expected = new();
-            _notificationRepositoryMock.Setup(repo => repo.GetNotification(It.IsAny<Friend_notificationId>()).Result).Returns(expected);
-
+            //_notificationRepositoryMock.Setup(repo => repo.GetNotification(It.IsAny<Friend_notificationId>()).Result).Returns(expected);
+            _notificationRepositoryMock.Setup(repo => repo.GetByIdAsync<Notification>(It.IsAny<int>()).Result).Returns(expected);
             friendRequest.StatusId = 1;
             friendRequest.NotificationId = 0;
             
