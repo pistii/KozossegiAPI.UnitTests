@@ -104,6 +104,50 @@ namespace KozossegiAPI.UnitTests.Repo
             return friends;
         }
 
+        public static IEnumerable<Notification> GetNotifications_OlderThan30Days()
+        {
+            var notifications = new List<Notification>()
+            {
+                new Notification()
+                {
+                    createdAt = DateTime.Now.AddDays(-30),
+                    notificationId = 1,
+                    notificationType = NotificationType.FriendRequestAccepted
+                },
+                new Notification()
+                {
+                    createdAt = DateTime.Now.AddDays(-29),
+                    notificationId = 2,
+                    notificationType = NotificationType.FriendRequestAccepted
+                },
+                new Notification()
+                {
+                    createdAt = DateTime.Now.AddDays(-31),
+                    notificationId = 3,
+                    notificationType = NotificationType.FriendRequestAccepted
+                },
+                new Notification()
+                {
+                    createdAt = DateTime.Now.AddDays(-40),
+                    notificationId = 4,
+                    notificationType = NotificationType.FriendRequest
+                },
+                new Notification()
+                {
+                    createdAt = DateTime.Now.AddDays(2),
+                    notificationId = 5,
+                    notificationType = NotificationType.Birthday
+                },
+                new Notification()
+                {
+                    createdAt = DateTime.Now,
+                    notificationId = 6,
+                    notificationType = NotificationType.Birthday
+                }
+            };
+            return notifications;
+        }
+
 
         [Test]
         public async Task BirthdayNotification_SendsNotificationToFriendsOfUser()
@@ -111,7 +155,7 @@ namespace KozossegiAPI.UnitTests.Repo
             using var scope = _serviceProvider.CreateScope();
             SetupDb(scope);
             var notificationRepository = new NotificationRepository(
-                _dbContext, 
+                _dbContext,
                 _friendRepository,
                 _hubContextMock.Object,
                 _connections.Object
@@ -124,11 +168,34 @@ namespace KozossegiAPI.UnitTests.Repo
             await _dbContext.AddRangeAsync(usersWhoHasBirthdayToday);
             await _dbContext.AddRangeAsync(friends);
             await _dbContext.SaveChangesAsync();
-            
+
             await notificationRepository.BirthdayNotification();
 
             var notification = await _dbContext.Notification.FirstAsync();
             Assert.That(notification, Is.Not.Null);
+            Assert.That(notification.notificationContent.Contains("születésnap"));
+        }
+
+        [Test]
+        public async Task GetDeletableNotifications_ReturnsNotificationsIfMoreThan30DaysOld()
+        {
+            using var scope = _serviceProvider.CreateScope();
+            SetupDb(scope);
+            var notificationRepository = new NotificationRepository(
+                _dbContext,
+                _friendRepository,
+                _hubContextMock.Object,
+                _connections.Object
+                );
+
+            var notifications = GetNotifications_OlderThan30Days();
+            await _dbContext.AddRangeAsync(notifications);
+            await _dbContext.SaveChangesAsync();
+
+            var result = await notificationRepository.GetDeletableNotifications();
+
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.Count(), Is.EqualTo(2));
         }
     }
 }
