@@ -16,12 +16,10 @@ namespace KozossegiAPI.UnitTests.Repo
     {
         private ServiceProvider _serviceProvider;
         private IFriendRepository _friendRepository;
-        //private INotificationRepository _notificationRepository;
         private readonly Mock<IHubContext<NotificationHub, INotificationClient>> _hubContextMock = new();
         private Mock<IMapConnections> _connections = new();
-
+        private NotificationRepository notificationRepository;
         private DBContext _dbContext = new();
-
 
         [SetUp]
         public void Setup()
@@ -33,6 +31,8 @@ namespace KozossegiAPI.UnitTests.Repo
             services.AddScoped<INotificationRepository, NotificationRepository>();
             
             _serviceProvider = services.BuildServiceProvider();
+
+            
         }
 
         [TearDown]
@@ -46,9 +46,13 @@ namespace KozossegiAPI.UnitTests.Repo
         {
             var scopedServices = scope.ServiceProvider;
             _friendRepository = scopedServices.GetRequiredService<IFriendRepository>();
-            //_notificationRepository = scopedServices.GetRequiredService<INotificationRepository>();
-            //_notificationHub = scopedServices.GetRequiredService<IHubContext<NotificationHub, INotificationClient>>();
             _dbContext = scopedServices.GetRequiredService<DBContext>();
+            notificationRepository = new NotificationRepository(
+                _dbContext,
+                _friendRepository,
+                _hubContextMock.Object,
+                _connections.Object
+            );
         }
 
         public static List<Personal> GetUsers()
@@ -154,20 +158,14 @@ namespace KozossegiAPI.UnitTests.Repo
         {
             using var scope = _serviceProvider.CreateScope();
             SetupDb(scope);
-            var notificationRepository = new NotificationRepository(
-                _dbContext,
-                _friendRepository,
-                _hubContextMock.Object,
-                _connections.Object
-                );
-
-
+            
             var usersWhoHasBirthdayToday = GetUsers();
             var friends = GetFriends();
 
             await _dbContext.AddRangeAsync(usersWhoHasBirthdayToday);
             await _dbContext.AddRangeAsync(friends);
             await _dbContext.SaveChangesAsync();
+
 
             await notificationRepository.BirthdayNotification();
 
@@ -181,12 +179,7 @@ namespace KozossegiAPI.UnitTests.Repo
         {
             using var scope = _serviceProvider.CreateScope();
             SetupDb(scope);
-            var notificationRepository = new NotificationRepository(
-                _dbContext,
-                _friendRepository,
-                _hubContextMock.Object,
-                _connections.Object
-                );
+            
 
             var notifications = GetNotifications_OlderThan30Days();
             await _dbContext.AddRangeAsync(notifications);
@@ -196,6 +189,24 @@ namespace KozossegiAPI.UnitTests.Repo
 
             Assert.That(result, Is.Not.Null);
             Assert.That(result.Count(), Is.EqualTo(2));
+            Assert.That(result.Any(item => item.createdAt <= DateTime.Now.AddDays(-30)));
+        }
+
+        [Test]
+        public async Task SelectNotifications_DeleteSelectedItemsFromDatabase()
+        {
+            using var scope = _serviceProvider.CreateScope();
+            SetupDb(scope);
+
+            var notifications = GetNotifications_OlderThan30Days();
+            await _dbContext.Notification.AddRangeAsync(notifications);
+            await _dbContext.SaveChangesAsync();
+
+            await notificationRepository.SelectNotification();
+
+            var remainingNotifications = await _dbContext.Notification.ToListAsync();
+            Assert.That(remainingNotifications.Count, Is.EqualTo(4));
+            Assert.That(remainingNotifications.Any(item => item.createdAt >= DateTime.Now.AddDays(-30)));
         }
     }
 }
