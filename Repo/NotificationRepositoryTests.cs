@@ -114,40 +114,53 @@ namespace KozossegiAPI.UnitTests.Repo
             {
                 new Notification()
                 {
+                    ReceiverId = 1,
                     createdAt = DateTime.Now.AddDays(-30),
                     notificationId = 1,
                     notificationType = NotificationType.FriendRequestAccepted
                 },
                 new Notification()
                 {
+                    ReceiverId = 1,
                     createdAt = DateTime.Now.AddDays(-29),
                     notificationId = 2,
                     notificationType = NotificationType.FriendRequestAccepted
                 },
                 new Notification()
                 {
+                    ReceiverId = 1,
                     createdAt = DateTime.Now.AddDays(-31),
                     notificationId = 3,
                     notificationType = NotificationType.FriendRequestAccepted
                 },
                 new Notification()
                 {
+                    ReceiverId = 1,
                     createdAt = DateTime.Now.AddDays(-40),
                     notificationId = 4,
                     notificationType = NotificationType.FriendRequest
                 },
                 new Notification()
                 {
+                    ReceiverId = 1,
                     createdAt = DateTime.Now.AddDays(2),
                     notificationId = 5,
                     notificationType = NotificationType.Birthday
                 },
                 new Notification()
                 {
+                    ReceiverId = 1,
                     createdAt = DateTime.Now,
                     notificationId = 6,
                     notificationType = NotificationType.Birthday
-                }
+                },
+                new Notification()
+                {
+                    ReceiverId = 3,
+                    createdAt = DateTime.Now.AddDays(1),
+                    notificationId = 7,
+                    notificationType = NotificationType.Birthday
+                },
             };
             return notifications;
         }
@@ -205,8 +218,27 @@ namespace KozossegiAPI.UnitTests.Repo
             await notificationRepository.SelectNotification();
 
             var remainingNotifications = await _dbContext.Notification.ToListAsync();
-            Assert.That(remainingNotifications.Count, Is.EqualTo(4));
+            Assert.That(remainingNotifications.Count, Is.EqualTo(5));
             Assert.That(remainingNotifications.Any(item => item.createdAt >= DateTime.Now.AddDays(-30)));
+        }
+
+        [Test]
+        public async Task GetAll_PersonNotifications_ReturnsNotificationsToUser()
+        {
+            using var scope = _serviceProvider.CreateScope();
+            SetupDb(scope);
+
+            var notifications = GetNotifications_OlderThan30Days();
+            await _dbContext.Notification.AddRangeAsync(notifications);
+            await _dbContext.SaveChangesAsync();
+
+            //in default case shouldn't be more notification
+            await notificationRepository.SelectNotification();
+
+            var result = await notificationRepository.GetAll_PersonNotifications(1);
+
+            Assert.That(result.Count, Is.EqualTo(4));
+            Assert.That(result.All(i => i.ReceiverId == 1));
         }
     }
 }
