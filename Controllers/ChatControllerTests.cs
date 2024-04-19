@@ -217,5 +217,37 @@ namespace KozossegiAPI.UnitTests.Controllers
             Assert.That(okResult.StatusCode, Is.EqualTo(StatusCodes.Status200OK));
             Assert.That(actionResult, Is.EqualTo("Message sent"));
         }
+
+        [Test]
+        public async Task SendMessage_ChatRoomDoesntExists_CreateNewConversation()
+        {
+            ChatDto testChatRoomParameter = new()
+            {
+                senderId = 1,
+                AuthorId = 1,
+                receiverId = 2,
+                message = "Teszt",
+                status = Status.Sent
+            };
+
+            ChatRoom room = new ChatRoom
+            {
+                chatRoomId = 1,
+                senderId = testChatRoomParameter.senderId,
+                receiverId = testChatRoomParameter.receiverId,
+                startedDateTime = DateTime.UtcNow,
+                endedDateTime = DateTime.UtcNow
+            };
+
+            _chatRepository.Setup(repo => repo.ChatRoomExists(It.IsAny<ChatDto>())).ReturnsAsync((ChatRoom)null);
+            _chatRepository.Setup(repo => repo.CreateChatRoom(It.IsAny<ChatDto>())).ReturnsAsync(room);
+
+            var result = await _chatControllerMock.SendMessage(testChatRoomParameter);
+
+            var okResult = result as OkObjectResult;
+            string? actionResult = okResult?.Value as string;
+            Assert.That(actionResult, Is.EqualTo("Message sent"));
+            Assert.That(okResult.StatusCode, Is.EqualTo(StatusCodes.Status200OK));
+        }
     }
 }
