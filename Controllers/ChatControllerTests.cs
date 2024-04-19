@@ -130,5 +130,23 @@ namespace KozossegiAPI.UnitTests.Controllers
             Assert.That(result.Count, userId == 1 ? Is.EqualTo(2) : Is.EqualTo(0));
         }
 
+        
+        [Test]
+        [TestCase(1)]
+        public async Task GetAllChatRoom_FilterToChatRoom_ReturnChatRoomWhichContainsSearchValue(int userId)
+        {
+            //Arrange
+            var expectedChatRooms = testData;
+            var messagePartners = testDataPersonal;
+            _chatRepository.Setup(repo => repo.GetAllChatRoomAsQuery(It.IsAny<int>())).ReturnsAsync(expectedChatRooms);
+            _chatRepository.Setup(repo => repo.GetMessagePartnersById(It.IsAny<List<ChatRoom>>(), It.IsAny<int>())).ReturnsAsync(messagePartners.Where(person => person.id == 2 || person.id == 3));
+
+            //Act
+            var result = await _chatControllerMock.GetAllChatRoom(userId, "hello");
+
+            var filterIsSuccessful = result.Any(item => item.Key.ChatContents.Any(content => content.message.ToLower().Contains("hello")));
+            Assert.That(result.Count(), Is.EqualTo(1));
+            Assert.That(filterIsSuccessful);
+        }
     }
 }
