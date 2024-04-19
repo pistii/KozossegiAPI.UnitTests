@@ -1,18 +1,13 @@
 ﻿using KozoskodoAPI.Data;
 using Microsoft.EntityFrameworkCore;
 using Moq;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace KozossegiAPI.UnitTests.Helpers
 {
     public static class MockDbSetFactory
     {
         // Creates a mock DbSet from the specified data.
-        public static DbSet<T> Create<T>(this Mock<DBContext> dbContextMock, List<T> data) where T : class
+        public static void Create<T>(this Mock<DBContext> dbContextMock, List<T> data) where T : class
         {
             var dbSetMock = new Mock<DbSet<T>>();
             dbSetMock.As<IQueryable<T>>().Setup(m => m.Provider).Returns(data.AsQueryable().Provider);
@@ -25,8 +20,6 @@ namespace KozossegiAPI.UnitTests.Helpers
 
             // DbContext beállítása a DbSet-re való hivatkozásra
             dbContextMock.Setup(db => db.Set<T>()).Returns(dbSetMock.Object);
-
-            return dbSetMock.Object;
         }
     }
 }

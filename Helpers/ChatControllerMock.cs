@@ -5,13 +5,10 @@ using KozoskodoAPI.Realtime.Connection;
 using KozoskodoAPI.Realtime;
 using KozoskodoAPI.Repo;
 using Microsoft.AspNetCore.SignalR;
-using Microsoft.EntityFrameworkCore;
 using Moq;
-using System.Data.Entity;
-
 namespace KozossegiAPI.UnitTests.Helpers
 {
-    public class ChatControllerMock 
+    public class ChatControllerMock
     {
         public static IQueryable<ChatRoom> GetChatRooms()
         {
@@ -35,7 +32,7 @@ namespace KozossegiAPI.UnitTests.Helpers
                     {
                         new ChatContent()
                         {
-                            //MessageId = 1,
+                            MessageId = 1,
                             AuthorId = 1,
                             chatContentId = 2,
                             message = "hello. How are you?",
@@ -44,7 +41,7 @@ namespace KozossegiAPI.UnitTests.Helpers
                         },
                         new ChatContent()
                         {
-                            //MessageId = 2,
+                            MessageId = 2,
                             AuthorId = 3,
                             chatContentId = 1,
                             message = "Hi",
@@ -67,7 +64,6 @@ namespace KozossegiAPI.UnitTests.Helpers
                     isMale = true,
                     DateOfBirth = DateOnly.Parse("1988-12-10"),
                     PlaceOfResidence = "Columbia"
-
                 },
                 new Personal()
                 {
@@ -77,6 +73,15 @@ namespace KozossegiAPI.UnitTests.Helpers
                     isMale = true,
                     DateOfBirth = DateOnly.Parse("1956-10-10"),
                     PlaceOfResidence = "Budapest"
+                },
+                new Personal()
+                {
+                    id = 3,
+                    firstName = "Kiwikamaho",
+                    lastName = "Hujahou",
+                    isMale = true,
+                    DateOfBirth = DateOnly.Parse("1987-10-10"),
+                    PlaceOfResidence = "Hawaii"
 
                 },
             };
@@ -106,11 +111,12 @@ namespace KozossegiAPI.UnitTests.Helpers
                 }
             }.AsQueryable();
         }
-        
-        
+
+
         private static readonly Mock<IHubContext<ChatHub, IChatClient>> _hubContextMock = new();
         private static readonly Mock<IMapConnections> _connectionsMock = new();
         private static readonly Mock<IUserRepository<user>> _userRepository = new();
+        private static readonly Mock<DBContext> dbContext;
 
         public static ChatController GetControllerMock(Mock<IChatRepository<ChatRoom, Personal>> _chatRepository)
         {
@@ -119,16 +125,15 @@ namespace KozossegiAPI.UnitTests.Helpers
             List<Personal> personals = GetPersonals().ToList();
             List<ChatContent> chatcontents = GetChatContents().ToList();
             //Tesztadatok átadása az adatbázis factorynak
-            
-            var dbContext = new Mock<DBContext>();
+
+            Mock<DBContext> dbContext = new Mock<DBContext>();
 
             MockDbSetFactory.Create<ChatRoom>(dbContext, chatRooms);
             MockDbSetFactory.Create<Personal>(dbContext, personals);
             MockDbSetFactory.Create<ChatContent>(dbContext, chatcontents);
-
+            
             //A tesztelendő osztályból egy példány
             ChatController _chatControllerMock = new(
-               dbContext.Object,
                _hubContextMock.Object,
                _connectionsMock.Object,
                _chatRepository.Object,

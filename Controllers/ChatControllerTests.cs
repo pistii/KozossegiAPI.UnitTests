@@ -21,52 +21,17 @@ namespace KozossegiAPI.UnitTests.Controllers
     [TestFixture]
     public class ChatControllerTests
     {
-        private readonly Mock<DBContext> _dbContextMock = new();
-        private readonly Mock<IHubContext<ChatHub, IChatClient>> _hubContextMock = new();
-        private readonly Mock<IMapConnections> _connectionsMock = new();
-        private readonly Mock<IChatRepository<ChatRoom, Personal>> _chatRepository = new();
-        private readonly Mock<IUserRepository<user>> _userRepository = new();
-        private ChatController _chatControllerMock;
-        
-        public static IQueryable<ChatRoom> GetChatRooms()
-        {
-            return new List<ChatRoom>()
-            {
-                new ChatRoom() {
-                    chatRoomId = 1,
-                    endedDateTime = DateTime.UtcNow,
-                    receiverId = 1,
-                    senderId = 2,
-                    startedDateTime = DateTime.Now.AddDays(-3),
-                    ChatContents = { }
-                },
-                new ChatRoom() {
-                    chatRoomId = 1,
-                    endedDateTime = DateTime.UtcNow,
-                    receiverId = 1,
-                    senderId = 2,
-                    startedDateTime = DateTime.Now.AddDays(-3),
-                    ChatContents = { }
-                },
-            }.AsQueryable();
-        }
-        List<ChatRoom> baseDb = GetChatRooms().ToList();
+        public readonly Mock<IChatRepository<ChatRoom, Personal>> _chatRepository = new();
+        private IQueryable<ChatRoom> testData;
+        private IQueryable<Personal> testDataPersonal;
+        public ChatController _chatControllerMock;
 
         [SetUp]
         public void Setup()
         {
-            _chatControllerMock = new(
-               _dbContextMock.Object,
-               _hubContextMock.Object,
-               _connectionsMock.Object,
-               _chatRepository.Object,
-               _userRepository.Object
-               );
-            //List<ChatRoom> baseDb = GetChatRooms().ToList();
-            _dbContextMock.Setup(x => x.Add(It.IsAny<ChatRoom>())).Callback((ChatRoom room) =>
-            {
-                baseDb.Add(room);
-            });
+            _chatControllerMock = ChatControllerMock.GetControllerMock(_chatRepository);
+            testData = ChatControllerMock.GetChatRooms();
+            testDataPersonal = ChatControllerMock.GetPersonals();
         }
 
         [Test]
@@ -80,11 +45,11 @@ namespace KozossegiAPI.UnitTests.Controllers
                 receiverId = 1,
                 senderId = 2,
                 startedDateTime = DateTime.Now.AddDays(-3),
-                ChatContents = { }
+                ChatContents = new List<ChatContent>() { }
             };
-            _chatRepository.Setup(repo => repo.GetChatRoomById(1)).ReturnsAsync(expectedChatRoom);
+            _chatRepository.Setup(repo => repo.GetByIdAsync<ChatRoom>(It.IsAny<int>())).ReturnsAsync(expectedChatRoom); 
 
-            // Act
+            //Act
             var actionResult = await _chatControllerMock.GetChatRoom(1);
             
             // Assert
