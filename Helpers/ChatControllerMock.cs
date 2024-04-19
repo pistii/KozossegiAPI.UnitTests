@@ -111,26 +111,28 @@ namespace KozossegiAPI.UnitTests.Helpers
                 }
             }.AsQueryable();
         }
+        public static IQueryable<user> GetUsers()
+        {
+            List<user> users = new List<user>()
+            {
+                new user()
+                {
+                    userID = 1,
+                    email = "test1@test.com",
+                    isActivated = true,
+                    password = "password",
 
+                }
+            };
+            return users.AsQueryable();
+        }
 
         private static readonly Mock<IHubContext<ChatHub, IChatClient>> _hubContextMock = new();
         private static readonly Mock<IMapConnections> _connectionsMock = new();
         private static readonly Mock<IUserRepository<user>> _userRepository = new();
-        private static readonly Mock<DBContext> dbContext;
 
         public static ChatController GetControllerMock(Mock<IChatRepository<ChatRoom, Personal>> _chatRepository)
         {
-            //Tesztadatok előkészítése
-            List<ChatRoom> chatRooms = GetChatRooms().ToList();
-            List<Personal> personals = GetPersonals().ToList();
-            List<ChatContent> chatcontents = GetChatContents().ToList();
-            //Tesztadatok átadása az adatbázis factorynak
-
-            Mock<DBContext> dbContext = new Mock<DBContext>();
-
-            MockDbSetFactory.Create<ChatRoom>(dbContext, chatRooms);
-            MockDbSetFactory.Create<Personal>(dbContext, personals);
-            MockDbSetFactory.Create<ChatContent>(dbContext, chatcontents);
             
             //A tesztelendő osztályból egy példány
             ChatController _chatControllerMock = new(
@@ -141,6 +143,27 @@ namespace KozossegiAPI.UnitTests.Helpers
                );
 
             return _chatControllerMock;
+        }
+
+        public static Mock<DBContext> GetDBContextMock()
+        {
+            //Tesztadatok előkészítése
+            List<ChatRoom> chatRooms = GetChatRooms().ToList();
+            List<Personal> personals = GetPersonals().ToList();
+            List<ChatContent> chatcontents = GetChatContents().ToList();
+            //Tesztadatok átadása az adatbázis factorynak
+
+            var dbContext = new Mock<DBContext>();
+
+            var contentMcokSet = MockDbSetFactory.Create<ChatContent>(chatcontents);
+            var personalMockSet = MockDbSetFactory.Create<Personal>(personals);
+            var chatroomMockSet = MockDbSetFactory.Create<ChatRoom>(chatRooms);
+
+            dbContext.Setup(x => x.ChatContent).Returns(contentMcokSet);
+            dbContext.Setup(x => x.Personal).Returns(personalMockSet);
+            dbContext.Setup(x => x.ChatRoom).Returns(chatroomMockSet);
+
+            return dbContext;
         }
     }
 }

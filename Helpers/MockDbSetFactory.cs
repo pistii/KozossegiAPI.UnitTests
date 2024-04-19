@@ -7,7 +7,7 @@ namespace KozossegiAPI.UnitTests.Helpers
     public static class MockDbSetFactory
     {
         // Creates a mock DbSet from the specified data.
-        public static void Create<T>(this Mock<DBContext> dbContextMock, List<T> data) where T : class
+        public static DbSet<T> Create<T>(List<T> data) where T : class
         {
             var dbSetMock = new Mock<DbSet<T>>();
             dbSetMock.As<IQueryable<T>>().Setup(m => m.Provider).Returns(data.AsQueryable().Provider);
@@ -18,8 +18,9 @@ namespace KozossegiAPI.UnitTests.Helpers
             dbSetMock.Setup(m => m.Add(It.IsAny<T>())).Callback<T>(item => data.Add(item));
             dbSetMock.Setup(m => m.AddRange(It.IsAny<IEnumerable<T>>())).Callback<IEnumerable<T>>(items => data.AddRange(items));
 
-            // DbContext beállítása a DbSet-re való hivatkozásra
-            dbContextMock.Setup(db => db.Set<T>()).Returns(dbSetMock.Object);
+            dbSetMock.Setup(x => x.AddRange(data));
+
+            return dbSetMock.Object;
         }
     }
 }
