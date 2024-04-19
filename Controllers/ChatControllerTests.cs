@@ -96,5 +96,22 @@ namespace KozossegiAPI.UnitTests.Controllers
             Assert.That(actualChatRoom, Is.EqualTo(expectedChatRoom));
         }
 
+        [Test]
+        public async Task GetChatRoom_ReturnsBadRequest_WhenChatRoomNotFound()
+        {
+            // Arrange
+            _chatRepository.Setup(repo => repo.GetChatRoomById(It.IsAny<int>())).ReturnsAsync((ChatRoom)null);
+
+
+            // Act
+            var actionResult = await _chatControllerMock.GetChatRoom(1);
+
+            // Assert
+            var result = actionResult as BadRequestResult;
+
+            Assert.That(actionResult, Is.Not.Null);
+            Assert.That(result.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
+        }
+
     }
 }
