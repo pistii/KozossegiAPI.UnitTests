@@ -148,5 +148,50 @@ namespace KozossegiAPI.UnitTests.Controllers
             Assert.That(result.Count(), Is.EqualTo(1));
             Assert.That(filterIsSuccessful);
         }
+
+        [Test]
+        public async Task GetChatContent_ReturnChatMessagesIfChatContentExists()
+        {
+            var expected = new ChatRoom()
+            {
+                chatRoomId = 1,
+                receiverId = 1,
+                senderId = 2,
+                endedDateTime = DateTime.Now,
+                startedDateTime = DateTime.Now.AddDays(-1),
+                ChatContents = new List<ChatContent>()
+                {
+                    new ChatContent()
+                    {
+                        message = "helo",
+                        chatContentId = 1
+                    },
+                    new ChatContent()
+                    {
+                        message = "szia",
+                        chatContentId = 1
+                    },
+                }
+            };
+            
+            _chatRepository.Setup(repo => repo.GetChatRoomById(It.IsAny<int>())).ReturnsAsync(expected);
+            var expectedList = new List<ChatContent>();
+            expectedList.AddRange(expected.ChatContents);
+
+            _chatRepository
+                .Setup(repo => repo.GetSortedEntities<ChatContent, DateTime?>(It.IsAny<Func<ChatContent, DateTime?>>(), It.IsAny<Expression<Func<ChatContent, bool>>>()))
+                .Returns(expectedList);
+            _chatRepository.Setup(repo => repo.Paginator<ChatContent>(It.IsAny<List<ChatContent>>(), It.IsAny<int>(), It.IsAny<int>())).Returns(expectedList);
+            
+            var result = await _chatControllerMock.GetChatContent(1);
+
+            _chatRepository.Verify(x => x.GetSortedEntities<ChatContent, DateTime?>(It.IsAny<Func<ChatContent, DateTime?>>(), It.IsAny<Expression<Func<ChatContent, bool>>>()), Times.Once);
+            _chatRepository.Verify(x => x.Paginator<ChatContent>(It.IsAny<List<ChatContent>>(), It.IsAny<int>(), It.IsAny<int>()));
+
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.Data, Is.InstanceOf<List<ChatContent>>());
+            Assert.That(expected.ChatContents.Count, Is.GreaterThan(1));
+            Assert.That(result.TotalPages, Is.EqualTo(1));
+        }
     }
 }
