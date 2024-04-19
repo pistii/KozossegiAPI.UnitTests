@@ -113,5 +113,22 @@ namespace KozossegiAPI.UnitTests.Controllers
             Assert.That(result.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
         }
 
+
+        [Test]
+        [TestCase(1)]
+        [TestCase(3)]
+        public async Task GetAllChatRoom_IfUserHasChatRoom_ReturnChatRoom(int userId)
+        {
+            //Arrange
+            _chatRepository.Setup(repo => repo.GetAllChatRoomAsQuery(userId)).ReturnsAsync(testData.Where(room => room.senderId == userId || room.receiverId == userId));
+
+            _chatRepository.Setup(repo => repo.GetMessagePartnersById(testData.ToList(), userId)).ReturnsAsync(testDataPersonal);
+
+            //Act
+            var result = await _chatControllerMock.GetAllChatRoom(userId);
+
+            Assert.That(result.Count, userId == 1 ? Is.EqualTo(2) : Is.EqualTo(0));
+        }
+
     }
 }
