@@ -193,5 +193,29 @@ namespace KozossegiAPI.UnitTests.Controllers
             Assert.That(expected.ChatContents.Count, Is.GreaterThan(1));
             Assert.That(result.TotalPages, Is.EqualTo(1));
         }
+
+        [Test]
+        public async Task SendMessage_AddsNewMessageToChatContent_ChatRoomExists()
+        {
+            ChatDto testChatRoomParameter = new()
+            {
+                senderId = 1,
+                AuthorId = 1,
+                receiverId = 2,
+                message = "Teszt",
+                status = Status.Sent
+            };
+            var expectedChatRoom = testData.FirstOrDefault(room => room.receiverId == 1);
+            _chatRepository.Setup(repo => repo.ChatRoomExists(It.IsAny<ChatDto>())).ReturnsAsync(expectedChatRoom!);
+            _chatRepository.Setup(repo => repo.CreateChatRoom(It.IsAny<ChatDto>())).ReturnsAsync(expectedChatRoom!);
+
+            var result = await _chatControllerMock.SendMessage(testChatRoomParameter);
+
+            var okResult = result as OkObjectResult;
+            string? actionResult = okResult?.Value as string;
+            Assert.That(result, Is.Not.Null);
+            Assert.That(okResult.StatusCode, Is.EqualTo(StatusCodes.Status200OK));
+            Assert.That(actionResult, Is.EqualTo("Message sent"));
+        }
     }
 }
