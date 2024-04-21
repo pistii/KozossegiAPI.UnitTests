@@ -110,24 +110,19 @@ namespace KozossegiAPI.UnitTests.FriendControllerTests
         }
 
         [Test]
-        public async Task PostFriendRequest_ShouldNotSendTheNotificationToRequestedUser()
+        [TestCase(3, 2)]
+        public async Task PostFriendRequest_ShouldNotSendTheNotificationToRequestedUser_BecauseUserCannotBeFound(int receiverId, int SenderId)
         {
-            List<Personal> baseDb = new List<Personal>() {
-                new Personal { id = 1, firstName = "Teszt1", lastName = "Teszt1" },
-                new Personal { id = 2, firstName = "Teszt2", lastName = "Teszt2" }
-            };
             //Arrange
-            _personalRepositoryMock.Setup(repo => repo.Get(It.IsAny<int>()));
-            _dbContextMock.Setup(x => x.Add(It.IsAny<Personal>())) //Foreach helyett
-            .Callback((Personal item) =>
-            {
-                baseDb.Add(item);
-            });
-
-            int receiverId = 3;
-            int SenderId = 2;
+            var sender = dbContext.Object.Personal.First(x => x.id == SenderId);
+            Personal receiver = null;
             Notification parameter = new(receiverId, SenderId, NotificationType.FriendRequest);
-            var mockSet = new Mock<DbSet<Personal>>();
+
+            _personalRepositoryMock.Setup(repo => repo.GetByIdAsync<Personal>(It.Is<int>(id => id == SenderId)))
+                .ReturnsAsync(sender);
+            _friendRepositoryMock.Setup(repo => repo.GetUserWithNotification(It.Is<int>(id => id == receiverId)))
+                .ReturnsAsync(receiver);
+
 
             //Act
             var actionResult = await _friendControllerMock.postFriendRequest(parameter);
