@@ -177,19 +177,43 @@ namespace KozossegiAPI.UnitTests.FriendControllerTests
         }
 
         [Test]
-        public async Task Put_FriendRequestReceivedButItWasRejected_ShouldOnlySendNotificationToRequester()
+        [TestCase(3, 1)]
+        public async Task Put_FriendRequestReceivedButItWasRejected_ShouldOnlySendNotificationToRequester(int receiverId, int senderId)
         {
             //Arrange
-            _dbContextMock.Setup(x => x.Add(It.IsAny<Friend>()))
-            .Callback((Friend item) =>
+            Friend_notificationId friend_NotificationId = new()
             {
-                baseFriendDb.Add(item);
-            });
-            friendRequest.StatusId = 4; //Rejected friend request
+                NotificationId = 1,
+                FriendId = senderId,
+                UserId = receiverId,
+                StatusId = 4,
+                FriendshipID = 1,
+            };
+
+            Notification notification = new(3, 2, NotificationType.FriendRequest)
+            {
+                notificationId = 1,
+                notificationContent = "ismerősnek jelölt",
+                notificationType = NotificationType.FriendRequest,
+                isNew = false,
+                createdAt = DateTime.Parse("2020-10-12 10:16")
+            };
+
+            _friendRepositoryMock.Setup(repo => repo.FriendshipExists(It.IsAny<Friend_notificationId>())).ReturnsAsync(friend_NotificationId);
+            _notificationRepositoryMock.Setup(repo => repo.GetByIdAsync<Notification>(It.IsAny<int>())).ReturnsAsync(notification);
+            _notificationRepositoryMock.Setup(repo => repo.UpdateAsync(It.IsAny<Notification>()));
+            _friendRepositoryMock.Setup(repo => repo.SaveAsync());
+            _friendRepositoryMock.Setup(repo => repo.Delete(friend_NotificationId));
+
 
             //Act
-            var result = _friendControllerMock.Put(friendRequest);
-            //Asert
+            var result = _friendControllerMock.Put(friend_NotificationId);
+
+            //Assert
+
+            _notificationRepositoryMock.Verify(d => d.UpdateAsync(It.IsAny<Notification>()), Times.Once());
+            _friendRepositoryMock.Verify(d => d.Delete(It.IsAny<Friend_notificationId>()), Times.Once());
+            _friendRepositoryMock.Verify(d => d.SaveAsync(), Times.Once());
 
             var okResult = result.Result as OkObjectResult;
             Notification? resultContent = okResult?.Value as Notification;
