@@ -135,6 +135,43 @@ namespace KozossegiAPI.UnitTests.FriendControllerTests
         }
 
         [Test]
+        [TestCase(3, 2)]
+        [Ignore("Notification is not updated as existing entity. Doesn't step into generic class")]
+        public async Task PostFriendRequest_PreviousFriendRequestExists_ShouldOverwritePreviousOne(int receiverId, int SenderId)
+        {
+            var sender = dbContext.Object.Personal.First(x => x.id == SenderId);
+            Personal receiver = dbContext.Object.Personal.First(x => x.id == receiverId);
+            Notification existingNotificationOfRequested = new(3, 2, NotificationType.FriendRequest)
+            {
+                notificationId = 1,
+                notificationContent = "ismerősnek jelölt",
+                notificationType = NotificationType.FriendRequest,
+                isNew = false,
+                createdAt = DateTime.Parse("2020-10-12 10:16")
+            };
+            receiver.Notifications.Add(existingNotificationOfRequested);
+
+            Notification previousRequest = new(receiverId, SenderId, NotificationType.FriendRequest);
+
+            _personalRepositoryMock.Setup(repo => repo.GetByIdAsync<Personal>(It.Is<int>(id => id == SenderId)))
+                .ReturnsAsync(sender);
+            _friendRepositoryMock.Setup(repo => repo.GetUserWithNotification(It.Is<int>(id => id == receiverId)))
+                .ReturnsAsync(receiver);
+            _notificationRepositoryMock.Setup(repo => repo.UpdateThenSaveAsync(existingNotificationOfRequested));
+
+            //Act
+            var actionResult = await _friendControllerMock.postFriendRequest(previousRequest);
+            var okResult = actionResult as OkObjectResult;
+
+            _notificationRepositoryMock.Verify(d => d.UpdateThenSaveAsync(It.IsAny<Notification>()), Times.Once());
+            Assert.That(dbContext.Object.Notification.Count, Is.EqualTo(1));
+            Assert.That(dbContext.Object.Notification.FirstOrDefault().createdAt, Is.Not.EqualTo(DateTime.Parse("2020-10-12 10:16")));
+            Assert.IsNotNull(actionResult);
+            Assert.IsInstanceOf<OkObjectResult>(actionResult);
+            Assert.AreEqual(okResult.StatusCode, StatusCodes.Status200OK);
+        }
+
+        [Test]
         public async Task Delete_RemoveFriendshipFromDatabase()
         {
             //Arrange
