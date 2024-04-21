@@ -1,14 +1,9 @@
 using KozoskodoAPI.Controllers;
-using KozoskodoAPI.Realtime.Connection;
-using KozoskodoAPI.Realtime;
 using KozoskodoAPI.Repo;
-using Microsoft.AspNetCore.SignalR;
 using KozoskodoAPI.Data;
 using Moq;
 using KozoskodoAPI.Models;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using System.Net;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 
@@ -21,9 +16,7 @@ namespace KozossegiAPI.UnitTests.FriendControllerTests
     [TestFixture]
     public class FriendControllerTests
     {
-        private readonly Mock<DBContext> _dbContextMock = new();
-        private readonly Mock<IHubContext<NotificationHub, INotificationClient>> _hubContextMock = new();
-        private readonly Mock<IMapConnections> _connectionsMock = new();
+        private Mock<DBContext> dbContext = new();
 
         private FriendController _friendControllerMock;
         private Mock<IFriendRepository> _friendRepositoryMock = new();
@@ -46,38 +39,10 @@ namespace KozossegiAPI.UnitTests.FriendControllerTests
         [SetUp]
         public void Setup()
         {
-            _friendControllerMock = new(
-                _friendRepositoryMock.Object,
-                _personalRepositoryMock.Object,
-                _notificationRepositoryMock.Object,
-                _hubContextMock.Object,
-                _connectionsMock.Object);
-
-            PutSetup();
+            _friendControllerMock = FriendControllerMock.GetFriendControllerMock(_friendRepositoryMock, _personalRepositoryMock, _notificationRepositoryMock);
+            dbContext = FriendControllerMock.GetDBContextMock();
         }
 
-        public void PutSetup()
-        {
-            List<Friend> baseFriendDb = new List<Friend>() {
-                new Friend { FriendshipID=1, UserId=1, FriendId=2, StatusId=1}, //Friends
-                new Friend { FriendshipID=2, UserId=1, FriendId=3, StatusId=3 }, //Sent
-                new Friend { FriendshipID=3, UserId=1, FriendId=4, StatusId=4 }, //Rejected
-            };
-
-            friendRequest = new()
-            {
-                NotificationId = 1,
-                UserId = 1,
-                FriendId = 2,
-                StatusId = 1
-            };
-
-            expected = null;
-            _friendRepositoryMock.Setup(repo => repo.FriendshipExists(It.IsAny<Friend_notificationId>()).Result)
-                .Returns(expected);
-            _notificationRepositoryMock.Setup(repo => repo.GetByIdAsync<Notification>(It.IsAny<int>()).Result).Returns(receiverUserNotification);
-            _notificationRepositoryMock.Setup(repo => repo.UpdateAsync<Notification>(It.IsAny<Notification?>()));
-        }
 
         [Test]
         public async Task GetAll_QueryFriendsReturnAllFriendsWhichContainsId()
