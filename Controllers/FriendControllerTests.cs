@@ -5,7 +5,7 @@ using Moq;
 using KozoskodoAPI.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.HttpResults;
+using KozossegiAPI.UnitTests.Helpers;
 
 namespace KozossegiAPI.UnitTests.FriendControllerTests
 {
@@ -23,19 +23,6 @@ namespace KozossegiAPI.UnitTests.FriendControllerTests
         private Mock<IPersonalRepository<Personal>> _personalRepositoryMock = new();
         private Mock<INotificationRepository> _notificationRepositoryMock = new();
 
-        Friend expected = null;
-        Notification receiverUserNotification = new()
-        {
-            ReceiverId = 1,
-            SenderId = 2,
-            notificationId = 1,
-            notificationContent = "Ismerõsnek jelölt.",
-            isNew = true            
-        };
-        List<Friend> baseFriendDb;
-        Friend_notificationId friendRequest;
-        
-
         [SetUp]
         public void Setup()
         {
@@ -43,44 +30,20 @@ namespace KozossegiAPI.UnitTests.FriendControllerTests
             dbContext = FriendControllerMock.GetDBContextMock();
         }
 
-
+        
         [Test]
-        public async Task GetAll_QueryFriendsReturnAllFriendsWhichContainsId()
+        [TestCase(1)]
+        public async Task GetAll_QueryFriendsReturnAllFriendsWhichContainsId(int userId)
         {
-            var userId = 1;
-            //Barátok
-            var friends = new List<Personal>()
-            {
-                new Personal { 
-                    id=1, firstName = "Gipsz", middleName = "Jakab", 
-                    friends = new() { FriendshipID=1, UserId = 3, FriendId = userId, StatusId = 1}, 
-                },
-                new Personal { id=2, firstName = "John", lastName = "Doe",
-                    friends = new() { FriendshipID = 2, UserId = userId, FriendId = 2, StatusId = 1},
-                },
-                new Personal { id=3, firstName = "Dog", lastName = "Cat",
-                    friends = new() { FriendshipID = 3, UserId = 4, FriendId = userId, StatusId = 1},
-                }
-            };
+            var objToReturn = dbContext.Object.Personal.Where(f => f.id == 1 || f.id == 2).AsEnumerable();
+            _friendRepositoryMock.Setup(m => m.GetAll(It.IsAny<int>())).ReturnsAsync(objToReturn);
 
-            //Nem barát
-            var testData = new List<Personal>()
-            {
-                new Personal {
-                    id= 4, firstName = "Teszt", middleName = "Teszt",
-                    friends = new() { FriendshipID=1, UserId = 4, FriendId = 5, StatusId = 1},
-                },
-            };
+            var result = _friendControllerMock.GetAll(userId);
 
-            _dbContextMock.Setup(x => x.Add(It.IsAny<Personal>())) //Foreach helyett
-            .Callback((Personal item) =>
-            {
-                testData.Add(item);
-                friends.Add(item);
-            });
-
-            var result = _friendRepositoryMock.Setup(m => m.GetAll(1).Result).Returns(friends); 
-
+            var okResult = result.Result as OkObjectResult;
+            IEnumerable<Personal> persons = okResult.Value as IEnumerable<Personal>;
+            Assert.That(persons.Count, Is.GreaterThan(0));
+            Assert.That(persons.Count, Is.EqualTo(2));
             Assert.That(result, Is.Not.Null);
         }
 
@@ -88,7 +51,7 @@ namespace KozossegiAPI.UnitTests.FriendControllerTests
         [TestCase(1, 2)]
         public async Task PostFriendRequest_SavesFriendshipIntoDatabase(int receiverId, int SenderId)
         {
-            //2-es id "Teszt" kÃ¼ld barÃ¡ti kÃ©relmet 1-es id "Gipsz" felhasznÃ¡lÃ³nak.
+            //2-es id "Teszt" küld baráti kérelmet 1-es id "Gipsz" felhasználónak.
             Notification parameter = new(receiverId, SenderId, NotificationType.FriendRequest);
 
             var sender = dbContext.Object.Personal.First(x => x.id == SenderId);
@@ -144,7 +107,7 @@ namespace KozossegiAPI.UnitTests.FriendControllerTests
             Notification existingNotificationOfRequested = new(3, 2, NotificationType.FriendRequest)
             {
                 notificationId = 1,
-                notificationContent = "ismerÅ‘snek jelÃ¶lt",
+                notificationContent = "ismerõsnek jelölt",
                 notificationType = NotificationType.FriendRequest,
                 isNew = false,
                 createdAt = DateTime.Parse("2020-10-12 10:16")
@@ -171,6 +134,7 @@ namespace KozossegiAPI.UnitTests.FriendControllerTests
             Assert.AreEqual(okResult.StatusCode, StatusCodes.Status200OK);
         }
 
+        
         [Test]
         public async Task Delete_RemoveFriendshipFromDatabase()
         {
@@ -189,6 +153,7 @@ namespace KozossegiAPI.UnitTests.FriendControllerTests
             Assert.AreEqual(okResult.StatusCode, StatusCodes.Status200OK);
         }
 
+
         [Test]
         [TestCase(1, 4)]
         public async Task Put_FriendRequestReceivedNeverBeforeWasRequested_ShouldSaveFriendshipIntoDBAndSendNotificationToRequester(int receiverId, int senderId)
@@ -205,12 +170,12 @@ namespace KozossegiAPI.UnitTests.FriendControllerTests
             Notification notification = new(3, 2, NotificationType.FriendRequest)
             {
                 notificationId = 1,
-                notificationContent = "ismerÅ‘snek jelÃ¶lt",
+                notificationContent = "ismerõsnek jelölt",
                 notificationType = NotificationType.FriendRequest,
                 isNew = false,
                 createdAt = DateTime.Parse("2020-10-12 10:16")
             };
-            string expected = "MostantÃ³l ismerÅ‘sÃ¶k vagytok.";
+            string expected = "Mostantól ismerõsök vagytok.";
 
 
             _friendRepositoryMock.Setup(repo => repo.FriendshipExists(It.IsAny<Friend_notificationId>())).ReturnsAsync(friendshipObject);
@@ -225,11 +190,10 @@ namespace KozossegiAPI.UnitTests.FriendControllerTests
             //Asert
             var okResult = result as OkObjectResult;
             Notification? resultContent = okResult?.Value as Notification;
-            string expected = "Mostantól ismerõsök vagytok.";
-
             Assert.AreEqual(okResult.StatusCode, StatusCodes.Status200OK);
             Assert.That(expected, Is.EqualTo(resultContent.notificationContent));
         }
+
 
         [Test]
         [TestCase(3, 1)]
@@ -248,7 +212,7 @@ namespace KozossegiAPI.UnitTests.FriendControllerTests
             Notification notification = new(3, 2, NotificationType.FriendRequest)
             {
                 notificationId = 1,
-                notificationContent = "ismerÅ‘snek jelÃ¶lt",
+                notificationContent = "ismerõsnek jelölt",
                 notificationType = NotificationType.FriendRequest,
                 isNew = false,
                 createdAt = DateTime.Parse("2020-10-12 10:16")
@@ -272,11 +236,12 @@ namespace KozossegiAPI.UnitTests.FriendControllerTests
 
             var okResult = result.Result as OkObjectResult;
             Notification? resultContent = okResult?.Value as Notification;
-
+            
             Assert.AreEqual(okResult.StatusCode, StatusCodes.Status200OK);
             Assert.That(resultContent.notificationContent.Contains("elutasítva".ToLower()));
         }
 
+        
         [Test]
         [TestCase(3, 1)]
         public async Task Put_NotificationDoesntExist_ShouldOnlySaveFriendshipWithoutNotification(int receiverId, int senderId)
@@ -295,7 +260,7 @@ namespace KozossegiAPI.UnitTests.FriendControllerTests
             _friendRepositoryMock.Setup(repo => repo.FriendshipExists(It.IsAny<Friend_notificationId>())).ReturnsAsync(friend_NotificationId);
             _notificationRepositoryMock.Setup(repo => repo.GetByIdAsync<Notification>(It.IsAny<int>())).ReturnsAsync((Notification)null);
             _friendRepositoryMock.Setup(repo => repo.SaveAsync());
-            
+
             //Act
             var result = _friendControllerMock.Put(friend_NotificationId);
 
@@ -303,7 +268,7 @@ namespace KozossegiAPI.UnitTests.FriendControllerTests
 
             _notificationRepositoryMock.Verify(d => d.UpdateAsync(It.IsAny<Notification>()), Times.Never());
             _friendRepositoryMock.Verify(d => d.SaveAsync(), Times.Once());
-            
+
             var okResult = result.Result as OkObjectResult;
             Notification? resultContent = okResult?.Value as Notification;
 
