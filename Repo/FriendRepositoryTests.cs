@@ -149,9 +149,9 @@ namespace KozossegiAPI.UnitTests.Repo
                 FriendshipSince = DateTime.Now.AddDays(-1)
             };
 
-            mock.Setup(u => u.GetByIdAsync(1)).ReturnsAsync(expected);
+            mock.Setup(u => u.GetByIdAsync<Friend>(It.IsAny<int>())).ReturnsAsync(expected);
 
-            var result = await mock.Object.GetByIdAsync(1);
+            var result = await mock.Object.GetByIdAsync<Friend>(1);
 
             Assert.That(expected, Is.EqualTo(result));
         }
