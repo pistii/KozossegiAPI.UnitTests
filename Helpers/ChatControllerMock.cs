@@ -6,6 +6,8 @@ using KozoskodoAPI.Realtime;
 using KozoskodoAPI.Repo;
 using Microsoft.AspNetCore.SignalR;
 using Moq;
+using Microsoft.EntityFrameworkCore;
+
 namespace KozossegiAPI.UnitTests.Helpers
 {
     public class ChatControllerMock
@@ -121,7 +123,7 @@ namespace KozossegiAPI.UnitTests.Helpers
                     email = "test1@test.com",
                     isActivated = true,
                     password = "password",
-
+                                        
                 }
             };
             return users.AsQueryable();
@@ -129,7 +131,6 @@ namespace KozossegiAPI.UnitTests.Helpers
 
         private static readonly Mock<IHubContext<ChatHub, IChatClient>> _hubContextMock = new();
         private static readonly Mock<IMapConnections> _connectionsMock = new();
-        private static readonly Mock<IUserRepository<user>> _userRepository = new();
 
         public static ChatController GetControllerMock(Mock<IChatRepository<ChatRoom, Personal>> _chatRepository)
         {
@@ -138,8 +139,7 @@ namespace KozossegiAPI.UnitTests.Helpers
             ChatController _chatControllerMock = new(
                _hubContextMock.Object,
                _connectionsMock.Object,
-               _chatRepository.Object,
-               _userRepository.Object
+               _chatRepository.Object
                );
 
             return _chatControllerMock;
@@ -151,8 +151,7 @@ namespace KozossegiAPI.UnitTests.Helpers
             List<ChatRoom> chatRooms = GetChatRooms().ToList();
             List<Personal> personals = GetPersonals().ToList();
             List<ChatContent> chatcontents = GetChatContents().ToList();
-            //Tesztadatok átadása az adatbázis factorynak
-
+            
             var dbContext = new Mock<DBContext>();
 
             var contentMcokSet = MockDbSetFactory.Create<ChatContent>(chatcontents);

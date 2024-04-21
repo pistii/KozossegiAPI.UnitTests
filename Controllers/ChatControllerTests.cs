@@ -1,20 +1,14 @@
 ﻿using KozoskodoAPI.Controllers;
 using KozoskodoAPI.Models;
-using KozoskodoAPI.Realtime.Connection;
-using KozoskodoAPI.Realtime;
 using KozoskodoAPI.Repo;
-using Microsoft.AspNetCore.SignalR;
 using Moq;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using KozoskodoAPI.Data;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using System.Configuration;
+using KozossegiAPI.UnitTests.Helpers;
 using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
+using KozoskodoAPI.DTOs;
 
 namespace KozossegiAPI.UnitTests.Controllers
 {
@@ -24,14 +18,17 @@ namespace KozossegiAPI.UnitTests.Controllers
         public readonly Mock<IChatRepository<ChatRoom, Personal>> _chatRepository = new();
         private IQueryable<ChatRoom> testData;
         private IQueryable<Personal> testDataPersonal;
-        public ChatController _chatControllerMock;
+        private IQueryable<user> testDataUsers;
 
+        public ChatController _chatControllerMock;
+        
         [SetUp]
         public void Setup()
         {
             _chatControllerMock = ChatControllerMock.GetControllerMock(_chatRepository);
             testData = ChatControllerMock.GetChatRooms();
             testDataPersonal = ChatControllerMock.GetPersonals();
+            testDataUsers = ChatControllerMock.GetUsers();
         }
 
         [Test]
@@ -40,7 +37,6 @@ namespace KozossegiAPI.UnitTests.Controllers
             // Arrange
             var expectedChatRoom = new ChatRoom()
             {
-                chatRoomId = 1,
                 endedDateTime = DateTime.UtcNow,
                 receiverId = 1,
                 senderId = 2,
@@ -48,10 +44,10 @@ namespace KozossegiAPI.UnitTests.Controllers
                 ChatContents = new List<ChatContent>() { }
             };
             _chatRepository.Setup(repo => repo.GetByIdAsync<ChatRoom>(It.IsAny<int>())).ReturnsAsync(expectedChatRoom); 
-
+            
             //Act
             var actionResult = await _chatControllerMock.GetChatRoom(1);
-            
+
             // Assert
             var okResult = actionResult as OkObjectResult;
             ChatRoom? actualChatRoom = okResult?.Value as ChatRoom;
@@ -213,6 +209,48 @@ namespace KozossegiAPI.UnitTests.Controllers
             string? actionResult = okResult?.Value as string;
             Assert.That(actionResult, Is.EqualTo("Message sent"));
             Assert.That(okResult.StatusCode, Is.EqualTo(StatusCodes.Status200OK));
+        }
+
+        [Test]
+        [Ignore("Unfinished method in controller. Test later")]
+        public async Task UpdateMessage_ModifiesSelectedChatMessage()
+        {
+            var dbContext = ChatControllerMock.GetDBContextMock();
+            var repo = new ChatRepository(dbContext.Object);
+
+            user uss = new()
+            {
+                userID = 1,
+                email = "Teszt@teszt",
+                isActivated = true,
+                isOnlineEnabled = true,
+                LastOnline = DateTime.Now,
+                password = "123456789",
+                
+
+                personal = new()
+                {
+                    id = 1,
+                    firstName = "Gipsz",
+                    lastName = "Jakab",
+
+                }
+            };
+            ChatContent content = new()
+            {
+                AuthorId = 1,
+                chatContentId = 1,
+                message = "hello. How are you?",
+                MessageId = 1,
+                sentDate = DateTime.Now
+            };
+            _chatRepository.Setup(x => x.GetByIdAsync<user>(It.IsAny<int>())).ReturnsAsync(() => uss);
+            _chatRepository.Setup(x => x.GetByIdAsync<ChatContent>(It.IsAny<int>())).ReturnsAsync(content);
+
+            var result = await _chatControllerMock.UpdateMessage(2, 1, "teszt");
+            var data = dbContext.Object.ChatContent.Any(x => x.message == "teszt");
+            Assert.That(data, Is.True);
+            Assert.That(result, Is.Not.Null);
         }
     }
 }
