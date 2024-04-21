@@ -153,20 +153,40 @@ namespace KozossegiAPI.UnitTests.FriendControllerTests
         }
 
         [Test]
-        public async Task Put_FriendRequestReceivedNeverBeforeWasRequested_ShouldSaveFriendshipIntoDBAndSendNotificationToRequester()
+        [TestCase(1, 4)]
+        public async Task Put_FriendRequestReceivedNeverBeforeWasRequested_ShouldSaveFriendshipIntoDBAndSendNotificationToRequester(int receiverId, int senderId)
         {
-            //Arrange
-            _dbContextMock.Setup(x => x.Add(It.IsAny<Friend>()))
-            .Callback((Friend item) =>
+            Friend_notificationId friendshipObject = new();
+            friendshipObject.NotificationId = 1;
+            friendshipObject.FriendId = senderId;
+            friendshipObject.UserId = receiverId;
+            friendshipObject.StatusId = 1;
+            friendshipObject.FriendshipID = 1;
+            Friend friend = friendshipObject;
+
+            //The notification sent to the requested user
+            Notification notification = new(3, 2, NotificationType.FriendRequest)
             {
-                baseFriendDb.Add(item);
-            });
+                notificationId = 1,
+                notificationContent = "ismerÅ‘snek jelÃ¶lt",
+                notificationType = NotificationType.FriendRequest,
+                isNew = false,
+                createdAt = DateTime.Parse("2020-10-12 10:16")
+            };
+            string expected = "MostantÃ³l ismerÅ‘sÃ¶k vagytok.";
+
+
+            _friendRepositoryMock.Setup(repo => repo.FriendshipExists(It.IsAny<Friend_notificationId>())).ReturnsAsync(friendshipObject);
+            _notificationRepositoryMock.Setup(repo => repo.GetByIdAsync<Notification>(It.IsAny<int>())).ReturnsAsync(notification);
+            _friendRepositoryMock.Setup(repo => repo.SaveAsync());
 
             //Act
-            var result = _friendControllerMock.Put(friendRequest);
+            var result = await _friendControllerMock.Put(friendshipObject);
+
+            _friendRepositoryMock.Verify(d => d.SaveAsync(), Times.Once());
 
             //Asert
-            var okResult = result.Result as OkObjectResult;
+            var okResult = result as OkObjectResult;
             Notification? resultContent = okResult?.Value as Notification;
             string expected = "Mostantól ismerõsök vagytok.";
 
