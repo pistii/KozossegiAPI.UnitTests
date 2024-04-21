@@ -138,20 +138,18 @@ namespace KozossegiAPI.UnitTests.FriendControllerTests
         public async Task Delete_RemoveFriendshipFromDatabase()
         {
             //Arrange
-            List<Friend> friends = new List<Friend>()
-            {
-                new() { FriendshipID = 1, UserId = 3, FriendId = 1, StatusId = 1 },
-                new() { FriendshipID = 1, UserId = 2, FriendId = 1, StatusId = 1 },
-                new() { FriendshipID = 1, UserId = 1, FriendId = 2, StatusId = 1 },
-                new() { FriendshipID = 1, UserId = 4, FriendId = 5, StatusId = 1 }
-            };
-            var mockSet = new Mock<DbSet<Friend>>();
-            _dbContextMock.Setup(m => m.Friendship).Returns(mockSet.Object);
+            var dbContext = FriendControllerMock.GetDBContextMock();
+
+
             Friend friendshipToRemove = new() { FriendshipID = 1, UserId = 3, FriendId = 1, StatusId = 1 };
             //Act
-            var actionResult = _friendControllerMock.Delete(friendshipToRemove);
+            var actionResult = await _friendControllerMock.Delete(friendshipToRemove);
+            var okResult = actionResult as OkObjectResult;
+
             //Assert
-            Assert.That(!friends.Contains(friendshipToRemove));
+            Assert.That(!dbContext.Object.Friendship.Contains(friendshipToRemove));
+
+            Assert.AreEqual(okResult.StatusCode, StatusCodes.Status200OK);
         }
 
         [Test]
