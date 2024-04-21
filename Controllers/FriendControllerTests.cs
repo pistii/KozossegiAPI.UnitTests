@@ -199,30 +199,37 @@ namespace KozossegiAPI.UnitTests.FriendControllerTests
         }
 
         [Test]
-        public async Task Put_NotificationDoesntExist()
+        [TestCase(3, 1)]
+        public async Task Put_NotificationDoesntExist_ShouldOnlySaveFriendshipWithoutNotification(int receiverId, int senderId)
         {
             //Arrange
-            _dbContextMock.Setup(x => x.Add(It.IsAny<Friend>()))
-            .Callback((Friend item) =>
+            Friend_notificationId friend_NotificationId = new()
             {
-                baseFriendDb.Add(item);
-            });
+                NotificationId = 1,
+                FriendId = senderId,
+                UserId = receiverId,
+                StatusId = 1,
+                FriendshipID = 1,
+            };
 
-            Notification expected = new();
-            //_notificationRepositoryMock.Setup(repo => repo.GetNotification(It.IsAny<Friend_notificationId>()).Result).Returns(expected);
-            _notificationRepositoryMock.Setup(repo => repo.GetByIdAsync<Notification>(It.IsAny<int>()).Result).Returns(expected);
-            friendRequest.StatusId = 1;
-            friendRequest.NotificationId = 0;
+
+            _friendRepositoryMock.Setup(repo => repo.FriendshipExists(It.IsAny<Friend_notificationId>())).ReturnsAsync(friend_NotificationId);
+            _notificationRepositoryMock.Setup(repo => repo.GetByIdAsync<Notification>(It.IsAny<int>())).ReturnsAsync((Notification)null);
+            _friendRepositoryMock.Setup(repo => repo.SaveAsync());
             
             //Act
-            var result = _friendControllerMock.Put(friendRequest);
+            var result = _friendControllerMock.Put(friend_NotificationId);
+
+            //Assert
+
+            _notificationRepositoryMock.Verify(d => d.UpdateAsync(It.IsAny<Notification>()), Times.Never());
+            _friendRepositoryMock.Verify(d => d.SaveAsync(), Times.Once());
             
-            //Asert
-            var nullResult = result.Result;
-            Notification? resultContent = nullResult as Notification;
             var okResult = result.Result as OkObjectResult;
+            Notification? resultContent = okResult?.Value as Notification;
 
             Assert.AreEqual(okResult.StatusCode, StatusCodes.Status200OK);
+            Assert.That(resultContent, Is.EqualTo(null));
         }
     }
 }
