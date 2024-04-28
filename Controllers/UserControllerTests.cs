@@ -491,6 +491,38 @@ namespace KozossegiAPI.UnitTests.Controllers
             _verificationCodeCacheMock.Verify(x => x.Create(It.IsAny<string>(), It.IsAny<string>()), Times.Once());
             _encodeDecodeMock.Verify(x => x.Encrypt(It.IsAny<string>(), It.IsAny<string>()), Times.Once());
         }
+
+        [Test]
+        public async Task ModifyPassword_VercodeIsCorrectAndModifiesPasswordToRequested()
+        {
+            var user = new user()
+            {
+                userID = 1,
+                email = "teszt",
+                password = "password"
+            };
+            ModifyPassword passwordForm = new()
+            {
+                Password1 = "TestPassword",
+                Password2 = "TestPassword",
+                otpKey = "000000"
+            };
+
+
+            _verificationCodeCacheMock.Setup(repo => repo.GetValue(It.IsAny<string>()));
+            _userRepositoryMock.Setup(repo => repo.GetByGuid(It.IsAny<string>())).ReturnsAsync(user);
+            _verificationCodeCacheMock.Setup(repo => repo.Remove(It.IsAny<string>()));
+            _userRepositoryMock.Setup(repo => repo.UpdateThenSaveAsync(It.IsAny<user>()));
+
+            var result = await userController.ModifyPassword(passwordForm);
+
+            var okResult = result as OkResult;
+            Assert.That(okResult.StatusCode, Is.EqualTo(StatusCodes.Status200OK));
+            _verificationCodeCacheMock.Verify(x => x.GetValue(It.IsAny<string>()));
+            _userRepositoryMock.Verify(x => x.GetByGuid(It.IsAny<string>()));
+            _verificationCodeCacheMock.Verify(x => x.Remove(It.IsAny<string>()));
+            _userRepositoryMock.Verify(x => x.UpdateThenSaveAsync(It.IsAny<user>()));
+        }
         }
     }
 }
