@@ -431,7 +431,29 @@ namespace KozossegiAPI.UnitTests.Controllers
             Assert.AreEqual(okResultUser.Studies, comparingUser.Studies);
             Assert.That(okResult.Value, Is.EqualTo(comparing.Value));
             }
-            return lstUser;
+
+        [Test]
+        [TestCase(1)]
+        public async Task ValidateToken_ActivateUser(int userId)
+        {
+            user fakeUser = new()
+            {
+                userID = userId,
+                email = "teszt",
+                password = "123456789"
+            };
+            UserControllerMock.MockHttpContext(userController, userId);
+
+            _userRepositoryMock.Setup(repo => repo.GetUserByEmailOrPassword(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(fakeUser);
+            _userRepositoryMock.Setup(repo => repo.UpdateThenSaveAsync(It.IsAny<user>()));
+
+            var response = await userController.ActivateUser();
+            var okResult = response as OkObjectResult;
+
+            _userRepositoryMock.Verify(x => x.GetUserByEmailOrPassword(It.IsAny<string>(), It.IsAny<string>()), Times.Once());
+            _userRepositoryMock.Verify(x => x.UpdateThenSaveAsync(It.IsAny<user>()), Times.Once());
+            Assert.That(okResult.StatusCode, Is.EqualTo(StatusCodes.Status200OK));
+        }
         }
     }
 }
