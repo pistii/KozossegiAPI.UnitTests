@@ -206,14 +206,42 @@ namespace KozossegiAPI.UnitTests.Controllers
             Assert.That(okResult.Value, Is.Not.Null);
         }
 
+        [Test]
+        [TestCase(1)]
+        public async Task TurnOffReminder_UserSettingsExists_ShouldExtendNextTimeInterval(int userId)
             {
-                lstUser.Add(new user
+            //Set up user identity:
+            //https://weblogs.asp.net/ricardoperes/unit-testing-the-httpcontext-in-controllers
+
+            //Arrange
+            var person = _dbContextMock.Object.Personal.First(p => p.id == userId); //Settings tábla nélkül
+            person.Settings = new();
+
+            UserControllerMock.MockHttpContext(userController, userId);
+
+            _userRepositoryMock.Setup(repo => repo.GetPersonalWithSettingsAndUserAsync(It.IsAny<int>())).ReturnsAsync(person);
+
+            _userRepositoryMock.Setup(repo => repo.InsertSaveAsync(It.IsAny<Settings>())).Callback(() =>
                 {
-                    userID = index,
-                    email = "UserEmail" + index + "@gmail.com",
-                    password = "12345678",
-                    SecondaryEmailAddress = "SecondaryUserEmail" + index + "@gmail.com"
+                _dbContextMock.Object.Settings.Add(person.Settings);
                 });
+
+            var userSettingsDTO = new UserSettingsDTO()
+            {
+                Days = 1,
+                RemindUserOfUnfulfilledReg = true,
+                isOnlineEnabled = true,
+            };
+
+            //Act
+            var result = await userController.TurnOffReminder(userSettingsDTO);
+
+            var okResult = result as OkObjectResult;
+
+            Assert.That(okResult.StatusCode, Is.EqualTo(StatusCodes.Status200OK));
+            Assert.That(_dbContextMock.Object.Settings.Any(), Is.True);
+            Assert.That(okResult.Value, Is.Not.Null);
+        }
             }
             return lstUser;
         }
