@@ -153,7 +153,15 @@ namespace KozossegiAPI.UnitTests.Controllers
         [TestCase(1)]
         public async Task Get_ReturnsUser_WithGivenId(int userId)
         {
-            List<user> lstUser = new();
+            var expected = _dbContextMock.Object.user.Find(userId);
+            _userRepositoryMock.Setup(repo => repo.GetuserByIdAsync(It.IsAny<int>())).ReturnsAsync(expected);
+
+            var result = await userController.Get(userId);
+            var okResult = result as OkObjectResult;
+
+            Assert.That(okResult.StatusCode, Is.EqualTo(StatusCodes.Status200OK));
+            Assert.That(okResult.Value, Is.EqualTo(expected));
+        }
             
             for (int index = 1; index <= 10; index++)
             {
