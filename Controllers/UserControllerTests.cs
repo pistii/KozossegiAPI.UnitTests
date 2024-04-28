@@ -74,7 +74,43 @@ namespace KozossegiAPI.UnitTests.Controllers
             Assert.IsInstanceOf<OkObjectResult>(okResult);
             Assert.AreEqual(okResult.StatusCode, StatusCodes.Status200OK);
         }
+
+        [Test]
+        public async Task Authenticate_AuthenticationShouldBeSuccessful_ReturnsHttpOk()
+        {
+            //In the case of more test case, should use generated passwords for example from https://bcrypt.online/
+            //In this case of test the password is equals to the expected bcrypt password
+            LoginDto loginDto = new LoginDto()
+            {
+                Password = "password",
+                Email = "test1"
+            };
+
+            var personal = new Personal()
+            {
+                id = 1,
+                firstName = "Gipsz",
+                lastName = "Jakab",
+                isMale = true,
+                DateOfBirth = DateOnly.Parse("1988-12-10"),
+                PlaceOfResidence = "Columbia",
+            };
+            string token = "123456789";
+            var user = new user() //Stored in the database
+            {
+                userID = 1,
+                email = "test",
+                password = "$2y$10$kQtlrV3z1zWJ4YvuHQtZhO/8STD9oZvvb89KF9yEI021GqkKjn7mm",
+                personal = new Personal()
+                {
+                    id = 1,
+                    firstName = "Gipsz",
+                    lastName = "Jakab",
+                    isMale = true,
+                    DateOfBirth = DateOnly.Parse("1988-12-10"),
+                    PlaceOfResidence = "Columbia",
     }
+            };
 
 
     public class IUserControllerMock
