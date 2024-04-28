@@ -554,6 +554,25 @@ namespace KozossegiAPI.UnitTests.Controllers
             _userRepositoryMock.Verify(x => x.InsertSaveAsync(It.IsAny<UserRestriction>()));
         }
 
+
+        [Test]
+        [TestCase(1)]
+        public async Task Delete_UserFound_FinishesDeletion(int userId)
+        {
+            user user = new()
+            {
+                userID = 1,
+                email = "teszt",
+            };
+            _userRepositoryMock.Setup(repo => repo.GetByIdAsync<user>(It.IsAny<int>())).ReturnsAsync(user);
+            _userRepositoryMock.Setup(repo => repo.RemoveThenSaveAsync<user>(It.IsAny<user>()));
+
+            var result = await userController.Delete(userId);
+            var okResult = result as OkResult;
+
+            Assert.That(okResult.StatusCode, Is.EqualTo(StatusCodes.Status200OK));
+        }
+
         }
     }
 }
