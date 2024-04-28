@@ -573,6 +573,17 @@ namespace KozossegiAPI.UnitTests.Controllers
             Assert.That(okResult.StatusCode, Is.EqualTo(StatusCodes.Status200OK));
         }
 
+        [Test]
+        [TestCase(1)]
+        public async Task Delete_UserNotFound_ReturnsNotFoundResult(int userId)
+        {
+            _userRepositoryMock.Setup(repo => repo.GetByIdAsync<user>(It.IsAny<int>())).ReturnsAsync((user)null);
+            _userRepositoryMock.Setup(repo => repo.RemoveThenSaveAsync<user>(It.IsAny<user>()));
+
+            var result = await userController.Delete(userId);
+            var okResult = result as NotFoundResult;
+
+            Assert.That(okResult.StatusCode, Is.EqualTo(StatusCodes.Status404NotFound));
         }
     }
 }
