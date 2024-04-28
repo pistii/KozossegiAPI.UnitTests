@@ -112,21 +112,46 @@ namespace KozossegiAPI.UnitTests.Controllers
     }
             };
 
+            AuthenticateResponse response = new(personal, token);
+            _jwtTokenManagerMock.Setup(repo => repo.Authenticate(It.IsAny<LoginDto>())).ReturnsAsync(response);
+            _userRepositoryMock.Setup(repo => repo.GetUserByEmailAsync(It.IsAny<string>(), It.IsAny<bool>())).ReturnsAsync(user);
 
-    public class IUserControllerMock
+            var result = await userController.Authenticate(loginDto);
+
+
+            _jwtTokenManagerMock.Verify(x => x.Authenticate(It.IsAny<LoginDto>()), Times.Once());
+            _userRepositoryMock.Verify(x => x.GetUserByEmailAsync(It.IsAny<string>(), It.IsAny<bool>()), Times.Once());
+
+            var okResult = result as OkObjectResult;
+            Assert.IsInstanceOf<OkObjectResult>(okResult);
+        }
+
+        [Test]
+        public async Task Authenticate_AuthenticationShouldBeFailed_BecauseUserDoesntExists()
     {
+            //After the point of authentication, and because of it fails, should return with NotFound response
+            LoginDto loginDto = new LoginDto()
+            {
+                Password = "password",
+                Email = "test1"
+            };
         
-        //public static TContext GetMock<TContext>() where TContext : DbContext
-        //{
-        //    Mock<DbSet<user>> dbSetMock = new Mock<DbSet<user>>();
-        //    Mock<DbContext> dbContext = new Mock<DbContext>();
+            _jwtTokenManagerMock.Setup(repo => repo.Authenticate(It.IsAny<LoginDto>())).ReturnsAsync((AuthenticateResponse)null);
+            _userRepositoryMock.Setup(repo => repo.GetUserByEmailAsync(It.IsAny<string>(), It.IsAny<bool>())).ReturnsAsync((user)null);
 
-        //    dbSetMock.Setup(s => s.Count()).Returns(It.IsAny<user>);
+            var result = await userController.Authenticate(loginDto);
             
-        //    return dbContext.Object;
-        //}
 
-        private static List<user> GenerateTestData()
+            _jwtTokenManagerMock.Verify(x => x.Authenticate(It.IsAny<LoginDto>()), Times.Once());
+            _userRepositoryMock.Verify(x => x.GetUserByEmailAsync(It.IsAny<string>(), It.IsAny<bool>()), Times.Never());
+
+            var notFoundResult = result as NotFoundObjectResult;
+            Assert.IsInstanceOf<NotFoundObjectResult>(notFoundResult);
+        }
+
+        [Test]
+        [TestCase(1)]
+        public async Task Get_ReturnsUser_WithGivenId(int userId)
         {
             List<user> lstUser = new();
             
