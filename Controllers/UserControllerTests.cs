@@ -163,7 +163,41 @@ namespace KozossegiAPI.UnitTests.Controllers
             Assert.That(okResult.Value, Is.EqualTo(expected));
         }
             
-            for (int index = 1; index <= 10; index++)
+        [Test]
+        [TestCase(1, 2)]
+        [Ignore("Unfinished method in controller class. Should test after implemented the reactions connected to people")]
+        public async Task GetProfilePage_UserVisitsFriendProfilePage(int profileToView, int viewer)
+        {
+            var person = _dbContextMock.Object.Personal.First(p => p.id == profileToView);
+            var user = _dbContextMock.Object.user.First(p => p.userID == profileToView);
+
+            var settings = new Settings()
+            {
+                NextReminder = DateTime.Now,
+            };
+
+            var testData = person;
+            testData.users = user;
+            testData.Settings = settings;
+
+            var allUserFriends = _dbContextMock.Object.Personal.Where(p => p.id != profileToView);
+            var posts = _dbContextMock.Object.Post.Where(p => p.SourceId == profileToView).ToList();
+
+            _userRepositoryMock.Setup(repo => repo.GetPersonalWithSettingsAndUserAsync(It.IsAny<int>())).ReturnsAsync(testData);
+            //If the posts will be null, should add the return values
+            //_postRepositoryMock.Setup(repo => repo.GetAllPost(It.IsAny<int>(), It.IsAny<int>())).ReturnsAsync(posts);
+
+            _friendRepositoryMock.Setup(repo => repo.GetAll(It.IsAny<int>())).ReturnsAsync(allUserFriends);
+            //Familiarity status for example: self, friend, nonfriend
+            _friendRepositoryMock.Setup(repo => repo.CheckIfUsersInRelation(It.IsAny<int>(), It.IsAny<int>())).ReturnsAsync("friend");
+
+            var result = await userController.GetProfilePage(profileToView, viewer);
+
+            Assert.That(result, Is.Not.Null);
+        }
+
+
+
 
         [Test]
         [TestCase(1)]
@@ -490,6 +524,13 @@ namespace KozossegiAPI.UnitTests.Controllers
             _userRepositoryMock.Verify(x => x.GetUserByEmailAsync(It.IsAny<string>(), It.IsAny<bool>()), Times.Once());
             _verificationCodeCacheMock.Verify(x => x.Create(It.IsAny<string>(), It.IsAny<string>()), Times.Once());
             _encodeDecodeMock.Verify(x => x.Encrypt(It.IsAny<string>(), It.IsAny<string>()), Times.Once());
+        }
+
+        [Test]
+        [Ignore("This method will be modified after the testing is done.")]
+        public async Task ISVercodeCorrect_DeterminesIfVerificationCodeCorrect_AndSetsPasswordToIt()
+        {
+
         }
 
         [Test]
