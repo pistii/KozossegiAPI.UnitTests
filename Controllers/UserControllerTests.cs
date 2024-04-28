@@ -454,6 +454,43 @@ namespace KozossegiAPI.UnitTests.Controllers
             _userRepositoryMock.Verify(x => x.UpdateThenSaveAsync(It.IsAny<user>()), Times.Once());
             Assert.That(okResult.StatusCode, Is.EqualTo(StatusCodes.Status200OK));
         }
+
+        [Test]
+        public async Task ForgotPw_SendEmailToUser_ReturnsEncryptedVerificationCode()
+        {
+            string email = "teszt@teszt.com";
+            user userWithEmail = new() //The returned user from GetUserByEmailAsync method
+            {
+                userID = 1,
+                email = email,
+                password = "123456789",
+                Guid = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+                personal = new()
+                {
+                    lastName = "Teszt",
+                    firstName = "Elek"
+                }
+            };
+            string verificationCode = "000000";
+
+            var userControllerParameter = new EncryptedDataDto()
+            {
+                Data = "U2FsdGVkX1/O0JrzRfMygyzy+pf0MOeUiA+huFpD3rY="
+            };
+            _encodeDecodeMock.Setup(repo => repo.Decrypt(It.IsAny<string>(), It.IsAny<string>())).Returns(email);
+            _userRepositoryMock.Setup(repo => repo.GetUserByEmailAsync(It.IsAny<string>(), It.IsAny<bool>())).ReturnsAsync(userWithEmail);
+            _verificationCodeCacheMock.Setup(repo => repo.Create(It.IsAny<string>(), It.IsAny<string>()));
+            _encodeDecodeMock.Setup(repo => repo.Encrypt(It.IsAny<string>(), It.IsAny<string>()));
+
+            //Act
+            var result = await userController.ForgotPw(userControllerParameter);
+            var okResult = result as OkObjectResult;
+            Assert.That(okResult.StatusCode, Is.EqualTo(StatusCodes.Status200OK));
+            _encodeDecodeMock.Verify(x => x.Decrypt(It.IsAny<string>(), It.IsAny<string>()), Times.Once());
+            _userRepositoryMock.Verify(x => x.GetUserByEmailAsync(It.IsAny<string>(), It.IsAny<bool>()), Times.Once());
+            _verificationCodeCacheMock.Verify(x => x.Create(It.IsAny<string>(), It.IsAny<string>()), Times.Once());
+            _encodeDecodeMock.Verify(x => x.Encrypt(It.IsAny<string>(), It.IsAny<string>()), Times.Once());
+        }
         }
     }
 }
