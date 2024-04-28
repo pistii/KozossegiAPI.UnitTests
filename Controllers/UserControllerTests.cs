@@ -57,13 +57,22 @@ namespace KozossegiAPI.UnitTests.Controllers
         [TestCase(1)]
         public async Task GetUser_ReturnUserIfExists_ShouldReturnUserWithId1(int userId)
             {
-                userID = userId,
-                email = "valami@gmail.com"
+            var user = new user()
+            {
+                userID = 1,
+                email = "test",
+                password = "testPw"
             };
+
+            _userRepositoryMock.Setup(repo => repo.GetuserByIdAsync(It.IsAny<int>())).ReturnsAsync(user);
 
             var response = await userController.Get(userId);
 
-            Assert.That(response, Is.EqualTo(userShouldReturn));
+            var okResult = response as OkObjectResult;
+
+            Assert.That(okResult.Value, Is.EqualTo(user));
+            Assert.IsInstanceOf<OkObjectResult>(okResult);
+            Assert.AreEqual(okResult.StatusCode, StatusCodes.Status200OK);
         }
     }
 
