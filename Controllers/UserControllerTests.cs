@@ -338,6 +338,98 @@ namespace KozossegiAPI.UnitTests.Controllers
                 _userRepositoryMock.Verify(x => x.UpdateThenSaveAsync(It.IsAny<Personal>()), Times.Once());
             }
         }
+
+        [Test]
+        [TestCase(100)]
+        public async Task ModifyUserInfo_UserTablePropertiesCorrectlyPassed(int userId)
+        {
+            //Arrange
+            #region Prepare the test data
+
+            var studies = new Studies()
+            {
+                PK_Id = 1,
+                FK_UserId = userId,
+            };
+
+            var originalUser = new user()
+            {
+                userID = userId,
+                email = "teszt@email.com",
+                isActivated = true,
+                isOnlineEnabled = true,
+                LastOnline = DateTime.Parse("2023-04-11 10:43"),
+                password = BCrypt.Net.BCrypt.HashPassword("tesztPw123456789"),
+                registrationDate = DateTime.Parse("2011-04-01 10:13"),
+                SecondaryEmailAddress = "teszt2@email.com",
+                Studies = new List<Studies>() { }
+            };
+            originalUser.Studies.Add(studies);
+
+            var originalPersonal = new Personal()
+            {
+                id = 100,
+                DateOfBirth = DateOnly.Parse("2023-01-11"),
+                firstName = "teszt1",
+                middleName = "teszt2",
+                lastName = "teszt3",
+                isMale = true,
+                avatar = "asdf123456",
+                Workplace = "123456",
+                users = originalUser,
+            };
+
+            ModifyUserInfoDTO userInfoDTO = new(userId, null, null, null)
+            {
+                UserId = userId,
+                EmailAddress = "teszt2@email.com",
+                firstName = "First",
+                middleName = "Mid",
+                lastName = "Last",
+                isOnline = true,
+                Pass1 = "1234567Random",
+                Pass2 = "1234567Random",
+                PhoneNumber = "1234567899123",
+                SecondaryEmailAddress = "tesztSecondary@email.com",
+                PlaceOfBirth = "Üzbegisztán",
+                StartYear = 2014,
+                EndYear = 2018,
+                Class = "SchoolName",
+                PlaceOfResidence = "Azerbajdzsán",
+                Profession = "Software developer",
+                SchoolName = "Random name",
+                Workplace = "Teszt place"
+            };
+            #endregion
+            
+            _userRepositoryMock.Setup(repo => repo.GetPersonalWithSettingsAndUserAsync(It.IsAny<int>())).ReturnsAsync(originalPersonal);
+            _userRepositoryMock.Setup(repo => repo.GetByIdAsync<Studies>(It.IsAny<int>())).ReturnsAsync(studies);
+            _userRepositoryMock.Setup(repo => repo.UpdateThenSaveAsync(It.IsAny<Personal>()));
+            //For the comparison I've added a user to the fake db.
+            //This also simulates more likely the case when the user updates something.
+            _dbContextMock.Object.user.Add(originalUser);
+            _userRepositoryMock.Setup(repo => repo.GetuserByIdAsync(It.IsAny<int>())).ReturnsAsync(_dbContextMock.Object.user.FirstOrDefault(x => x.userID == userId));
+
+            //Act
+            var response = await userController.ModifyUserInfo(userInfoDTO);
+            var compare = await userController.Get(userId);
+            var userAfterModification = _dbContextMock.Object.user.FirstOrDefault(x => x.userID == userId);
+
+            var okResult = response as OkObjectResult;
+            var comparing = compare as OkObjectResult;
+            var okResultUser = okResult.Value as user;
+            var comparingUser = comparing.Value as user;
+
+            //Assert
+            _userRepositoryMock.Verify(x => x.GetPersonalWithSettingsAndUserAsync(It.IsAny<int>()), Times.Once());
+            _userRepositoryMock.Verify(x => x.UpdateThenSaveAsync(It.IsAny<Personal>()), Times.Once());
+
+
+            Assert.That(okResult.StatusCode, Is.EqualTo(StatusCodes.Status200OK));
+            Assert.That(comparing.StatusCode, Is.EqualTo(StatusCodes.Status200OK));
+            Assert.AreEqual(okResultUser, comparingUser);
+            Assert.AreEqual(okResultUser.Studies, comparingUser.Studies);
+            Assert.That(okResult.Value, Is.EqualTo(comparing.Value));
             }
             return lstUser;
         }
