@@ -285,6 +285,59 @@ namespace KozossegiAPI.UnitTests.Controllers
             Assert.That(badResult.StatusCode, Is.EqualTo(StatusCodes.Status200OK));
             Assert.That(badResult.Value, Is.Not.Null);
         }
+
+        [Test]
+        [TestCase(1)]
+        public async Task ModifyUserInfo_OnlyAvatarUpload_ShouldReturnOkResult(int userId)
+        {
+
+            Personal user = new Personal()
+            {
+                id = 1,
+                firstName = "testFirst",
+                lastName = "testLast",
+                users = _dbContextMock.Object.user.FirstOrDefault(x => x.userID == userId),
+                Settings = new()
+            };
+
+            _userRepositoryMock.Setup(repo => repo.GetPersonalWithSettingsAndUserAsync(It.IsAny<int>())).ReturnsAsync(user);
+            _imageRepositoryMock.Setup(repo => repo.Upload(It.IsAny<AvatarUpload>()));
+            _userRepositoryMock.Setup(repo => repo.UpdateThenSaveAsync(It.IsAny<Personal>()));
+
+            //Get the test image
+            string currentDirectory = Environment.CurrentDirectory; //Directory.GetCurrentDirectory();
+            string projectRoot = Directory.GetParent(currentDirectory).Parent.Parent.FullName;
+            string relativePath = Path.Combine("Helpers", "testAvatar.jpg");
+            string absolutePath = Path.Combine(projectRoot, relativePath);
+            //The image in bytes
+            var image = File.ReadAllBytes(absolutePath);
+            using (var stream = new MemoryStream(image.Length))
+            {
+                //The image as it would arrive as FromForm 
+                var file = new FormFile(stream, 0, image.Length, "name", absolutePath)
+                {
+                    Headers = new HeaderDictionary(),
+                    ContentType = "image/jpg"
+                };
+                //The test data
+                ModifyUserInfoDTO userInfoDTO = new(1, "test", "image/jpg", file)
+                {
+                    UserId = userId,
+                    File = file,
+                    Name = file.Name,
+                };
+
+
+                var response = await userController.ModifyUserInfo(userInfoDTO);
+
+                Assert.That(file, Is.Not.Null);
+                Assert.That(response, Is.Not.Null);
+                Assert.That(response, Is.InstanceOf<OkObjectResult>());
+                _userRepositoryMock.Verify(x => x.GetPersonalWithSettingsAndUserAsync(It.IsAny<int>()), Times.Once());
+                _imageRepositoryMock.Verify(x => x.Upload(It.IsAny<AvatarUpload>()), Times.Once());
+                _userRepositoryMock.Verify(x => x.UpdateThenSaveAsync(It.IsAny<Personal>()), Times.Once());
+            }
+        }
             }
             return lstUser;
         }
