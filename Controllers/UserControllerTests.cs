@@ -523,6 +523,37 @@ namespace KozossegiAPI.UnitTests.Controllers
             _verificationCodeCacheMock.Verify(x => x.Remove(It.IsAny<string>()));
             _userRepositoryMock.Verify(x => x.UpdateThenSaveAsync(It.IsAny<user>()));
         }
+
+        [Test]
+        public async Task RestrictUser_CreatesNewRestriction_BlocksUserTemporarily()
+        {
+            var user = new user()
+            {
+                userID = 1,
+                email = "teszt",
+                password = "password"
+            };
+            var dto = new RestrictionDto()
+            {
+                FK_StatusId = 1,
+                userId = 1,
+                EndDate = DateTime.UtcNow.AddDays(1),
+                Description = "User was bad"
+            };
+
+            _userRepositoryMock.Setup(repo => repo.GetuserByIdAsync(It.IsAny<int>())).ReturnsAsync(user);
+            _userRepositoryMock.Setup(repo => repo.InsertSaveAsync<Restriction>(It.IsAny<Restriction>()));
+            _userRepositoryMock.Setup(repo => repo.InsertSaveAsync<UserRestriction>(It.IsAny<UserRestriction>()));
+
+            var result = await userController.RestrictUser(dto);
+            var okResult = result as OkResult;
+            Assert.That(okResult.StatusCode, Is.EqualTo(StatusCodes.Status200OK));
+            
+            _userRepositoryMock.Verify(x => x.GetuserByIdAsync(It.IsAny<int>()));
+            _userRepositoryMock.Verify(x => x.InsertSaveAsync(It.IsAny<Restriction>()));
+            _userRepositoryMock.Verify(x => x.InsertSaveAsync(It.IsAny<UserRestriction>()));
+        }
+
         }
     }
 }
