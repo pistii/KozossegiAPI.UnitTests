@@ -261,6 +261,30 @@ namespace KozossegiAPI.UnitTests.Controllers
             Assert.That(badResult.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
             Assert.That(badResult.Value, Is.Not.Null);
         }
+
+        [Test]
+        public async Task SignUp_AddsUserToTheDb_ShouldReturnOkResult()
+        {
+            //In case of if it misses the templates, should add the email templates to: \bin\Debug\net7.0\templates
+            var registerform = new RegisterForm()
+            {
+                userID = 1,
+                email = "test",
+                SecondaryEmailAddress = "test",
+                Password = "password",
+            };
+            user user = registerform;
+
+            _userRepositoryMock.Setup(repo => repo.GetUserByEmailAsync(It.IsAny<string>(), It.IsAny<bool>())).ReturnsAsync(user);
+            _userRepositoryMock.Setup(repo => repo.InsertSaveAsync<user>(It.IsAny<user>()));
+
+
+            var result = await userController.SignUp(registerform);
+            var badResult = result as OkObjectResult;
+
+            Assert.That(badResult.StatusCode, Is.EqualTo(StatusCodes.Status200OK));
+            Assert.That(badResult.Value, Is.Not.Null);
+        }
             }
             return lstUser;
         }
