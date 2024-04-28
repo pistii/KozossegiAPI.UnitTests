@@ -242,6 +242,25 @@ namespace KozossegiAPI.UnitTests.Controllers
             Assert.That(_dbContextMock.Object.Settings.Any(), Is.True);
             Assert.That(okResult.Value, Is.Not.Null);
         }
+
+        [Test]
+        public async Task SignUp_EmailIsUsed_ShouldReturnBadRequest()
+        {
+            _userRepositoryMock.Setup(repo => repo.GetUserByEmailAsync(It.IsAny<string>(), It.IsAny<bool>())).ReturnsAsync((user)null);
+
+            var registerform = new RegisterForm()
+            {
+                userID = 1,
+                email = "test",
+                SecondaryEmailAddress = "test",
+                Password = "password",
+            };
+            var result = await userController.SignUp(registerform);
+            var badResult = result as BadRequestObjectResult;
+
+            Assert.That(badResult.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
+            Assert.That(badResult.Value, Is.Not.Null);
+        }
             }
             return lstUser;
         }
