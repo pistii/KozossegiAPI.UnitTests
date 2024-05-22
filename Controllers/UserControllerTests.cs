@@ -12,6 +12,7 @@ using KozoskodoAPI.Security;
 using KozoskodoAPI.SMTP.Storage;
 using KozossegiAPI.SMTP;
 using KozoskodoAPI.Controllers.Cloud;
+using KozossegiAPI.Models.Cloud;
 
 namespace KozossegiAPI.UnitTests.Controllers
 {
@@ -20,7 +21,7 @@ namespace KozossegiAPI.UnitTests.Controllers
     {
         private Mock<DBContext> _dbContextMock;
         private usersController userController;
-        
+
         private Mock<IFriendRepository> _friendRepositoryMock;
         private Mock<IUserRepository<user>> _userRepositoryMock;
         private Mock<IPostRepository<PostDto>> _postRepositoryMock;
@@ -40,14 +41,14 @@ namespace KozossegiAPI.UnitTests.Controllers
             _jwtTokenManagerMock = new();
 
             userController = UserControllerMock.GetUserControllerMock(
-                _jwtTokenManagerMock.Object, 
-                _jwtUtilsMock.Object, 
+                _jwtTokenManagerMock.Object,
+                _jwtUtilsMock.Object,
                 _friendRepositoryMock.Object,
                 _postRepositoryMock.Object,
                 _imageRepositoryMock.Object,
                 _userRepositoryMock.Object,
-                _mailSenderMock.Object, 
-                _verificationCodeCacheMock.Object, 
+                _mailSenderMock.Object,
+                _verificationCodeCacheMock.Object,
                 _encodeDecodeMock.Object
                 );
             _dbContextMock = UserControllerMock.GetDBContextMock();
@@ -56,7 +57,7 @@ namespace KozossegiAPI.UnitTests.Controllers
         [Test]
         [TestCase(1)]
         public async Task GetUser_ReturnUserIfExists_ShouldReturnUserWithId1(int userId)
-            {
+        {
             var user = new user()
             {
                 userID = 1,
@@ -109,18 +110,15 @@ namespace KozossegiAPI.UnitTests.Controllers
                     isMale = true,
                     DateOfBirth = DateOnly.Parse("1988-12-10"),
                     PlaceOfResidence = "Columbia",
-    }
+                }
             };
 
             AuthenticateResponse response = new(personal, token);
             _jwtTokenManagerMock.Setup(repo => repo.Authenticate(It.IsAny<LoginDto>())).ReturnsAsync(response);
-            _userRepositoryMock.Setup(repo => repo.GetUserByEmailAsync(It.IsAny<string>(), It.IsAny<bool>())).ReturnsAsync(user);
-
             var result = await userController.Authenticate(loginDto);
 
 
             _jwtTokenManagerMock.Verify(x => x.Authenticate(It.IsAny<LoginDto>()), Times.Once());
-            _userRepositoryMock.Verify(x => x.GetUserByEmailAsync(It.IsAny<string>(), It.IsAny<bool>()), Times.Once());
 
             var okResult = result as OkObjectResult;
             Assert.IsInstanceOf<OkObjectResult>(okResult);
@@ -128,19 +126,19 @@ namespace KozossegiAPI.UnitTests.Controllers
 
         [Test]
         public async Task Authenticate_AuthenticationShouldBeFailed_BecauseUserDoesntExists()
-    {
+        {
             //After the point of authentication, and because of it fails, should return with NotFound response
             LoginDto loginDto = new LoginDto()
             {
                 Password = "password",
                 Email = "test1"
             };
-        
+
             _jwtTokenManagerMock.Setup(repo => repo.Authenticate(It.IsAny<LoginDto>())).ReturnsAsync((AuthenticateResponse)null);
             _userRepositoryMock.Setup(repo => repo.GetUserByEmailAsync(It.IsAny<string>(), It.IsAny<bool>())).ReturnsAsync((user)null);
 
             var result = await userController.Authenticate(loginDto);
-            
+
 
             _jwtTokenManagerMock.Verify(x => x.Authenticate(It.IsAny<LoginDto>()), Times.Once());
             _userRepositoryMock.Verify(x => x.GetUserByEmailAsync(It.IsAny<string>(), It.IsAny<bool>()), Times.Never());
@@ -153,7 +151,7 @@ namespace KozossegiAPI.UnitTests.Controllers
         [TestCase(1)]
         public async Task Get_ReturnsUser_WithGivenId(int userId)
         {
-            var expected = _dbContextMock.Object.user.Find(userId);
+            var expected = _dbContextMock.Object.user.FirstOrDefault(x => x.userID == userId);
             _userRepositoryMock.Setup(repo => repo.GetuserByIdAsync(It.IsAny<int>())).ReturnsAsync(expected);
 
             var result = await userController.Get(userId);
@@ -162,7 +160,7 @@ namespace KozossegiAPI.UnitTests.Controllers
             Assert.That(okResult.StatusCode, Is.EqualTo(StatusCodes.Status200OK));
             Assert.That(okResult.Value, Is.EqualTo(expected));
         }
-            
+
         [Test]
         [TestCase(1, 2)]
         [Ignore("Unfinished method in controller class. Should test after implemented the reactions connected to people")]
@@ -243,7 +241,7 @@ namespace KozossegiAPI.UnitTests.Controllers
         [Test]
         [TestCase(1)]
         public async Task TurnOffReminder_UserSettingsExists_ShouldExtendNextTimeInterval(int userId)
-            {
+        {
             //Set up user identity:
             //https://weblogs.asp.net/ricardoperes/unit-testing-the-httpcontext-in-controllers
 
@@ -256,9 +254,9 @@ namespace KozossegiAPI.UnitTests.Controllers
             _userRepositoryMock.Setup(repo => repo.GetPersonalWithSettingsAndUserAsync(It.IsAny<int>())).ReturnsAsync(person);
 
             _userRepositoryMock.Setup(repo => repo.InsertSaveAsync(It.IsAny<Settings>())).Callback(() =>
-                {
+            {
                 _dbContextMock.Object.Settings.Add(person.Settings);
-                });
+            });
 
             var userSettingsDTO = new UserSettingsDTO()
             {
@@ -464,7 +462,7 @@ namespace KozossegiAPI.UnitTests.Controllers
             Assert.AreEqual(okResultUser, comparingUser);
             Assert.AreEqual(okResultUser.Studies, comparingUser.Studies);
             Assert.That(okResult.Value, Is.EqualTo(comparing.Value));
-            }
+        }
 
         [Test]
         [TestCase(1)]

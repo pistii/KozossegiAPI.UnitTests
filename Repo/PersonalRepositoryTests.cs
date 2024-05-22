@@ -15,7 +15,7 @@ namespace KozossegiAPI.UnitTests.Repo
     public class PersonalRepositoryTests
     {
         private ServiceProvider _serviceProvider;
-        private IPersonalRepository<Personal> _personalRepository;
+        private IPersonalRepository _personalRepository;
         
         private DBContext _dbContext = new();
 
@@ -27,14 +27,14 @@ namespace KozossegiAPI.UnitTests.Repo
             // Using In-Memory database for testing
             services.AddDbContext<DBContext>(options =>
                 options.UseInMemoryDatabase("TestDb"));
-            services.AddScoped<IPersonalRepository<Personal>, PersonalRepository>();
+            services.AddScoped<IPersonalRepository, PersonalRepository>();
             _serviceProvider = services.BuildServiceProvider();
         }
 
         public void SetupDb(IServiceScope scope)
         {
             var scopedServices = scope.ServiceProvider;
-            _personalRepository = scopedServices.GetRequiredService<IPersonalRepository<Personal>>();
+            _personalRepository = scopedServices.GetRequiredService<IPersonalRepository>();
             _dbContext = scopedServices.GetRequiredService<DBContext>();
             
         }
@@ -109,7 +109,7 @@ namespace KozossegiAPI.UnitTests.Repo
                 SetupDb(scope);
                 await CreateFakeDb();
 
-                var result = await _personalRepository.Get(1);
+                var result = await _personalRepository.GetByIdAsync<Personal>(1);
 
                 Assert.That(result, Is.Not.Null);
                 Assert.That(result.id, Is.EqualTo(1));

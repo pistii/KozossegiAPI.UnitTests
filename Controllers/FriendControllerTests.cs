@@ -20,12 +20,15 @@ namespace KozossegiAPI.UnitTests.FriendControllerTests
 
         private FriendController _friendControllerMock;
         private Mock<IFriendRepository> _friendRepositoryMock = new();
-        private Mock<IPersonalRepository<Personal>> _personalRepositoryMock = new();
+        private Mock<IPersonalRepository> _personalRepositoryMock = new();
         private Mock<INotificationRepository> _notificationRepositoryMock = new();
 
         [SetUp]
         public void Setup()
         {
+            _friendRepositoryMock = new();
+            _personalRepositoryMock = new();
+            _notificationRepositoryMock = new();
             _friendControllerMock = FriendControllerMock.GetFriendControllerMock(_friendRepositoryMock, _personalRepositoryMock, _notificationRepositoryMock);
             dbContext = FriendControllerMock.GetDBContextMock();
         }
@@ -143,6 +146,9 @@ namespace KozossegiAPI.UnitTests.FriendControllerTests
 
 
             Friend friendshipToRemove = new() { FriendshipID = 1, UserId = 3, FriendId = 1, StatusId = 1 };
+
+            _friendRepositoryMock.Setup(repo => repo.FriendshipExists(It.IsAny<Friend>())).ReturnsAsync(friendshipToRemove);
+
             //Act
             var actionResult = await _friendControllerMock.Delete(friendshipToRemove);
             var okResult = actionResult as OkObjectResult;

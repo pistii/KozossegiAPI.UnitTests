@@ -91,7 +91,7 @@ namespace KozossegiAPI.UnitTests.Helpers
         private static Mock<IHubContext<NotificationHub, INotificationClient>> _notificationHub = new();
         private static Mock<IMapConnections> _connections = new();
 
-        public static FriendController GetFriendControllerMock(Mock<IFriendRepository> friendRepository, Mock<IPersonalRepository<Personal>> personalRepository, Mock<INotificationRepository> notificationRepository)
+        public static FriendController GetFriendControllerMock(Mock<IFriendRepository> friendRepository, Mock<IPersonalRepository> personalRepository, Mock<INotificationRepository> notificationRepository)
         {
             var friendController = new FriendController(
                 friendRepository.Object,

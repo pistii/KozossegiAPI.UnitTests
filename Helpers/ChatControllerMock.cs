@@ -18,7 +18,7 @@ namespace KozossegiAPI.UnitTests.Helpers
             {
                 new ChatRoom() {
                     chatRoomId = 1,
-                    endedDateTime = DateTime.UtcNow,
+                    endedDateTime = DateTime.Now,
                     receiverId = 1,
                     senderId = 2,
                     startedDateTime = DateTime.Now.AddDays(-3),
@@ -26,7 +26,7 @@ namespace KozossegiAPI.UnitTests.Helpers
                 },
                 new ChatRoom() {
                     chatRoomId = 2,
-                    endedDateTime = DateTime.UtcNow,
+                    endedDateTime = DateTime.Now,
                     receiverId = 1,
                     senderId = 3,
                     startedDateTime = DateTime.Now.AddDays(-3),

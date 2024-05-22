@@ -37,7 +37,7 @@ namespace KozossegiAPI.UnitTests.Controllers
             // Arrange
             var expectedChatRoom = new ChatRoom()
             {
-                endedDateTime = DateTime.UtcNow,
+                endedDateTime = DateTime.Now,
                 receiverId = 1,
                 senderId = 2,
                 startedDateTime = DateTime.Now.AddDays(-3),
@@ -196,8 +196,8 @@ namespace KozossegiAPI.UnitTests.Controllers
                 chatRoomId = 1,
                 senderId = testChatRoomParameter.senderId,
                 receiverId = testChatRoomParameter.receiverId,
-                startedDateTime = DateTime.UtcNow,
-                endedDateTime = DateTime.UtcNow
+                startedDateTime = DateTime.Now,
+                endedDateTime = DateTime.Now
             };
 
             _chatRepository.Setup(repo => repo.ChatRoomExists(It.IsAny<ChatDto>())).ReturnsAsync((ChatRoom)null);

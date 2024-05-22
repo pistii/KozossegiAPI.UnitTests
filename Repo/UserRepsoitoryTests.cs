@@ -27,7 +27,7 @@ namespace KozossegiAPI.UnitTests.Repo
             services.AddDbContext<DBContext>(options =>
                 options.UseInMemoryDatabase("TestDb"));
             services.AddScoped<IUserRepository<user>, UserRepository>();
-            services.AddScoped<IPersonalRepository<Personal>, PersonalRepository>();
+            services.AddScoped<IPersonalRepository, PersonalRepository>();
 
             _serviceProvider = services.BuildServiceProvider();
         }

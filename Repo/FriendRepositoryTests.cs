@@ -21,7 +21,7 @@ namespace KozossegiAPI.UnitTests.Repo
     {
         private ServiceProvider _serviceProvider;
         private IFriendRepository _friendRepository;
-        private IPersonalRepository<Personal> _personalRepository;
+        private IPersonalRepository _personalRepository;
         private IUserRepository<user> _userRepository;
 
         public DBContext _dbContext = new();
@@ -36,7 +36,7 @@ namespace KozossegiAPI.UnitTests.Repo
                 options.UseInMemoryDatabase("TestDb"));
 
             services.AddScoped<IFriendRepository, FriendRepository>();
-            services.AddScoped<IPersonalRepository<Personal>, PersonalRepository>();
+            services.AddScoped<IPersonalRepository, PersonalRepository>();
             services.AddScoped<IUserRepository<user>, UserRepository>();
 
 
@@ -47,7 +47,7 @@ namespace KozossegiAPI.UnitTests.Repo
         {
             var scopedServices = scope.ServiceProvider;
             _friendRepository = scopedServices.GetRequiredService<IFriendRepository>();
-            _personalRepository = scopedServices.GetRequiredService<IPersonalRepository<Personal>>();
+            _personalRepository = scopedServices.GetRequiredService<IPersonalRepository>();
             _userRepository = scopedServices.GetRequiredService<IUserRepository<user>>();
 
 
