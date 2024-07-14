@@ -5,8 +5,8 @@ using KozoskodoAPI.DTOs;
 using KozoskodoAPI.Models;
 using KozoskodoAPI.Repo;
 using KozoskodoAPI.Security;
-using KozoskodoAPI.SMTP.Storage;
 using KozossegiAPI.SMTP;
+using KozossegiAPI.Storage;
 using Microsoft.AspNetCore.Http;
 using Moq;
 

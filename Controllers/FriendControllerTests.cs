@@ -38,13 +38,14 @@ namespace KozossegiAPI.UnitTests.FriendControllerTests
         [TestCase(1)]
         public async Task GetAll_QueryFriendsReturnAllFriendsWhichContainsId(int userId)
         {
-            var objToReturn = dbContext.Object.Personal.Where(f => f.id == 1 || f.id == 2).AsEnumerable();
+            var objToReturn = dbContext.Object.Personal.Where(f => f.id == 1 || f.id == 2).Select(n => new Personal_IsOnlineDto(n, true));
+
             _friendRepositoryMock.Setup(m => m.GetAll(It.IsAny<int>())).ReturnsAsync(objToReturn);
 
             var result = _friendControllerMock.GetAll(userId);
 
             var okResult = result.Result as OkObjectResult;
-            IEnumerable<Personal> persons = okResult.Value as IEnumerable<Personal>;
+            IEnumerable<Personal_IsOnlineDto> persons = okResult.Value as IEnumerable<Personal_IsOnlineDto>;
             Assert.That(persons.Count, Is.GreaterThan(0));
             Assert.That(persons.Count, Is.EqualTo(2));
             Assert.That(result, Is.Not.Null);

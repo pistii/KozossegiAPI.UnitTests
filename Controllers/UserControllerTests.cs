@@ -9,10 +9,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http;
 using KozoskodoAPI.Auth;
 using KozoskodoAPI.Security;
-using KozoskodoAPI.SMTP.Storage;
 using KozossegiAPI.SMTP;
 using KozoskodoAPI.Controllers.Cloud;
 using KozossegiAPI.Models.Cloud;
+using KozossegiAPI.Storage;
 
 namespace KozossegiAPI.UnitTests.Controllers
 {
@@ -178,7 +178,7 @@ namespace KozossegiAPI.UnitTests.Controllers
             testData.users = user;
             testData.Settings = settings;
 
-            var allUserFriends = _dbContextMock.Object.Personal.Where(p => p.id != profileToView);
+            var allUserFriends = _dbContextMock.Object.Personal.Where(p => p.id != profileToView).Select(f => new Personal_IsOnlineDto(f, true));
             var posts = _dbContextMock.Object.Post.Where(p => p.SourceId == profileToView).ToList();
 
             _userRepositoryMock.Setup(repo => repo.GetPersonalWithSettingsAndUserAsync(It.IsAny<int>())).ReturnsAsync(testData);

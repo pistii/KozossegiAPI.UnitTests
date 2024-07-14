@@ -11,20 +11,22 @@ using System.Text;
 using System.Threading.Tasks;
 using KozoskodoAPI.Data;
 using KozossegiAPI.Controllers.Cloud;
+using KozossegiAPI.Controllers.Cloud.Helpers;
 
 namespace KozossegiAPI.UnitTests.Helpers
 {
     internal class PostControllerMock
     {
         private static Mock<INotificationRepository> _InotificationRepository = new();
+        private static Mock<IFileHandlerService> _fileHandlerService = new();
 
         public static PostController GetPostControllerMock(IPostRepository<PostDto> postRepository, IChatRepository<ChatRoom, Personal> chatRepository, IStorageController storageController)
         {
             PostController _postControllerMock = new(
-                storageController,
-                _InotificationRepository.Object,
                 postRepository,
-                chatRepository
+                _fileHandlerService.Object,
+                storageController,
+                _InotificationRepository.Object
             );
 
             return _postControllerMock;

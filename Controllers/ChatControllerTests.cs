@@ -9,6 +9,9 @@ using KozossegiAPI.UnitTests.Helpers;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 using KozoskodoAPI.DTOs;
+using KozossegiAPI.Controllers.Cloud;
+using KozossegiAPI.DTOs;
+using KozossegiAPI.Services;
 
 namespace KozossegiAPI.UnitTests.Controllers
 {
@@ -134,23 +137,23 @@ namespace KozossegiAPI.UnitTests.Controllers
                     },
                 }
             };
-            
-            _chatRepository.Setup(repo => repo.GetChatRoomById(It.IsAny<int>())).ReturnsAsync(expected);
             var expectedList = new List<ChatContent>();
             expectedList.AddRange(expected.ChatContents);
+            var dto = expectedList.Select(s => s.ToDto()).ToList(); //Parse chatContent into ChatContentDto
+            var sortedData = expectedList.OrderByDescending(x => x.sentDate).ToList();
 
-            _chatRepository
-                .Setup(repo => repo.GetSortedEntities<ChatContent, DateTime?>(It.IsAny<Func<ChatContent, DateTime?>>(), It.IsAny<Expression<Func<ChatContent, bool>>>()))
-                .Returns(expectedList);
-            _chatRepository.Setup(repo => repo.Paginator<ChatContent>(It.IsAny<List<ChatContent>>(), It.IsAny<int>(), It.IsAny<int>())).Returns(expectedList);
+            _chatRepository.Setup(repo => repo.GetChatRoomById(It.IsAny<int>())).ReturnsAsync(expected);
+
+            _chatRepository.Setup(repo => repo.GetSortedChatContent(It.IsAny<int>())).Returns(sortedData);
+            _chatRepository.Setup(repo => repo.Paginator<ChatContentDto>(It.IsAny<List<ChatContentDto>>(), It.IsAny<int>(), It.IsAny<int>())).Returns(dto);
             
             var result = await _chatControllerMock.GetChatContent(1);
 
-            _chatRepository.Verify(x => x.GetSortedEntities<ChatContent, DateTime?>(It.IsAny<Func<ChatContent, DateTime?>>(), It.IsAny<Expression<Func<ChatContent, bool>>>()), Times.Once);
-            _chatRepository.Verify(x => x.Paginator<ChatContent>(It.IsAny<List<ChatContent>>(), It.IsAny<int>(), It.IsAny<int>()));
+            _chatRepository.Verify(x => x.GetSortedChatContent(It.IsAny<int>()), Times.Once);
+            _chatRepository.Verify(x => x.Paginator<ChatContentDto>(It.IsAny<List<ChatContentDto>>(), It.IsAny<int>(), It.IsAny<int>()));
 
             Assert.That(result, Is.Not.Null);
-            Assert.That(result.Data, Is.InstanceOf<List<ChatContent>>());
+            Assert.That(result.Data, Is.InstanceOf<List<ChatContentDto>>());
             Assert.That(expected.ChatContents.Count, Is.GreaterThan(1));
             Assert.That(result.TotalPages, Is.EqualTo(1));
         }
@@ -173,10 +176,10 @@ namespace KozossegiAPI.UnitTests.Controllers
             var result = await _chatControllerMock.SendMessage(testChatRoomParameter);
 
             var okResult = result as OkObjectResult;
-            string? actionResult = okResult?.Value as string;
+            ChatContent? actionResult = okResult?.Value as ChatContent;
             Assert.That(result, Is.Not.Null);
             Assert.That(okResult.StatusCode, Is.EqualTo(StatusCodes.Status200OK));
-            Assert.That(actionResult, Is.EqualTo("Message sent"));
+            Assert.That(actionResult, Is.TypeOf<ChatContent>());
         }
 
         [Test]
@@ -206,8 +209,8 @@ namespace KozossegiAPI.UnitTests.Controllers
             var result = await _chatControllerMock.SendMessage(testChatRoomParameter);
 
             var okResult = result as OkObjectResult;
-            string? actionResult = okResult?.Value as string;
-            Assert.That(actionResult, Is.EqualTo("Message sent"));
+            ChatContent? actionResult = okResult?.Value as ChatContent;
+            Assert.That(actionResult, Is.TypeOf<ChatContent>());
             Assert.That(okResult.StatusCode, Is.EqualTo(StatusCodes.Status200OK));
         }
 
@@ -216,7 +219,8 @@ namespace KozossegiAPI.UnitTests.Controllers
         public async Task UpdateMessage_ModifiesSelectedChatMessage()
         {
             var dbContext = ChatControllerMock.GetDBContextMock();
-            var repo = new ChatRepository(dbContext.Object);
+            Mock<IStorageController> storageController = new();
+            var repo = new ChatRepository(dbContext.Object, storageController.Object);
 
             user uss = new()
             {

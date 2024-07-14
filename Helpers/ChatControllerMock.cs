@@ -7,6 +7,9 @@ using KozoskodoAPI.Repo;
 using Microsoft.AspNetCore.SignalR;
 using Moq;
 using Microsoft.EntityFrameworkCore;
+using KozossegiAPI.Controllers.Cloud;
+using KozossegiAPI.Controllers.Cloud.Helpers;
+using KozossegiAPI.Storage;
 
 namespace KozossegiAPI.UnitTests.Helpers
 {
@@ -131,6 +134,9 @@ namespace KozossegiAPI.UnitTests.Helpers
 
         private static readonly Mock<IHubContext<ChatHub, IChatClient>> _hubContextMock = new();
         private static readonly Mock<IMapConnections> _connectionsMock = new();
+        private static readonly Mock<IStorageController> _storageController = new();
+        private static readonly Mock<IFileHandlerService> _fileHandlerController = new();
+        private static readonly Mock<IChatStorage> _chatStorage = new();
 
         public static ChatController GetControllerMock(Mock<IChatRepository<ChatRoom, Personal>> _chatRepository)
         {
@@ -139,7 +145,10 @@ namespace KozossegiAPI.UnitTests.Helpers
             ChatController _chatControllerMock = new(
                _hubContextMock.Object,
                _connectionsMock.Object,
-               _chatRepository.Object
+               _chatRepository.Object,
+               _storageController.Object,
+               _fileHandlerController.Object,
+               _chatStorage.Object
                );
 
             return _chatControllerMock;
