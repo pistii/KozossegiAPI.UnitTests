@@ -1,5 +1,6 @@
 ﻿using KozoskodoAPI.Data;
 using KozoskodoAPI.Models;
+using KozossegiAPI.DTOs;
 using Moq;
 using System;
 using System.Collections.Generic;
@@ -148,11 +149,13 @@ namespace KozossegiAPI.UnitTests.Helpers
             {
                 new Settings()
                 {
+                    PK_Id = 1,
                     FK_UserId = 1,
                     NextReminder = DateTime.Now.AddMinutes(1)
                 },
                 new Settings()
                 {
+                    PK_Id = 2,
                     FK_UserId = 2,
                     NextReminder = DateTime.Now.AddMinutes(999)
                 }
@@ -160,5 +163,150 @@ namespace KozossegiAPI.UnitTests.Helpers
             return settings;
         }
 
+
+        public static List<ModifyUserInfoDTO> GetTestData()
+        {
+            List<ModifyUserInfoDTO> changes = new List<ModifyUserInfoDTO>
+            {
+                new ModifyUserInfoDTO()
+                {
+                    UserId = 1,
+                    firstName = "Test"
+                },
+
+                new ModifyUserInfoDTO()
+                {
+                    UserId = 1,
+                    middleName = "Test"
+                },
+
+                new ModifyUserInfoDTO()
+                {
+                    UserId = 1,
+                    lastName = "Test"
+                },
+
+                new ModifyUserInfoDTO()
+                {
+                    UserId = 1,
+                    EmailAddress = "Test@valami.com"
+                },
+
+                new ModifyUserInfoDTO()
+                {
+                    UserId = 1,
+                    SecondaryEmailAddress = "Test@valami.com"
+                },
+
+
+                new ModifyUserInfoDTO()
+                {
+                    UserId = 1,
+                    Profession = "Test worker"
+                },
+
+
+                new ModifyUserInfoDTO()
+                {
+                    UserId = 1,
+                    Workplace = "Test place"
+                },
+
+
+                new ModifyUserInfoDTO()
+                {
+                    UserId = 1,
+                    Pass1 = "Testvalami.com"
+                },
+
+                new ModifyUserInfoDTO()
+                {
+                    UserId = 1,
+                    Pass2 = "Testvalami.com"
+
+                },
+
+
+                new ModifyUserInfoDTO()
+                {
+                    UserId = 1,
+                    PhoneNumber = "123123123123"
+                }
+            };
+
+            List<Study> studies = new List<Study>();
+            studies.Add(new Study() { 
+                SchoolName = "Test school",
+                Class = "Test class",
+                StartYear = 2012,
+                EndYear = 2016,
+                FK_UserId = 1,
+            });
+            studies.Add(new Study()
+            {
+                SchoolName = "Test school 1",
+                Class = "Test class 1",
+                StartYear = 2012,
+                EndYear = 2016,
+                FK_UserId = 1,
+            });
+            studies.Add(new Study()
+            {
+                SchoolName = "Test school 2",
+                Class = "Test class 2",
+                StartYear = 2012,
+                EndYear = 2016,
+                FK_UserId = 2,
+            });
+            return changes;
+        }
+
+        public static ModifyUserInfoDTO GetModifyUserInfoDTO()
+        {
+            var testData = new ModifyUserInfoDTO()
+            {
+                firstName = "Test",
+                middleName = "test",
+                lastName = "test",
+                EmailAddress = "test@test.com",
+                Pass1 = "Test1Pw",
+                Pass2 = "Test1Pw",
+                PhoneNumber = "123456789",
+                PlaceOfBirth = "Hawaii",
+                PlaceOfResidence = "Honolulu",
+                Profession = "Swimmer",
+                SecondaryEmailAddress = "test1@test.com",
+                Workplace = "Swimming school",
+                isOnline = true,
+                Studies = new List<Study>()
+                {
+                    new Study() {
+                        SchoolName = "Test school",
+                        Class = "Test class",
+                        StartYear = 2012,
+                        EndYear = 2016,
+                        FK_UserId = 1,
+                    },
+                    new Study()
+                    {
+                        SchoolName = "Test school 1",
+                        Class = "Test class 1",
+                        StartYear = 2012,
+                        EndYear = 2016,
+                        FK_UserId = 1,
+                    },
+                    new Study()
+                    {
+                        SchoolName = "Test school 2",
+                        Class = "Test class 2",
+                        StartYear = 2012,
+                        EndYear = 2016,
+                        FK_UserId = 2,
+                    }
+                }
+            };
+            return testData;
+
+        }
     }
 }
