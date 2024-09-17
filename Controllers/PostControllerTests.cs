@@ -1,23 +1,16 @@
-﻿using KozoskodoAPI.Controllers;
-using KozoskodoAPI.Controllers.Cloud;
-using KozoskodoAPI.DTOs;
-using KozoskodoAPI.Models;
-using KozoskodoAPI.Repo;
+﻿using KozossegiAPI.Controllers;
 using KozossegiAPI.Controllers.Cloud;
+using KozossegiAPI.DTOs;
+using KozossegiAPI.Models;
+using KozossegiAPI.Repo;
 using KozossegiAPI.Controllers.Cloud.Helpers;
 using KozossegiAPI.Models.Cloud;
 using KozossegiAPI.UnitTests.Helpers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Build.Framework;
 using Moq;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel.Design;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using static Google.Rpc.Context.AttributeContext.Types;
+using KozossegiAPI.Interfaces;
+using KozossegiAPI.Data;
 
 namespace KozossegiAPI.UnitTests.Controllers
 {
@@ -25,9 +18,13 @@ namespace KozossegiAPI.UnitTests.Controllers
     {
         private PostController postControllerMock;
         private static Mock<IPostRepository<PostDto>> _PostRepository = new();
-        private IQueryable<PostDto> _posts;
+        private static Mock<IStorageRepository> _storageRepository = new();
         private static Mock<IChatRepository<ChatRoom, Personal>> _chatRepository = new();
-        private static Mock<IStorageController> _storageController = new();
+        private static Mock<INotificationRepository> _notificationRepository = new();
+
+        private IQueryable<PostDto> _posts;
+        private Mock<DBContext> _dbContext;
+        private PostRepository repo;
 
         [SetUp]
         public void Setup()
@@ -36,8 +33,13 @@ namespace KozossegiAPI.UnitTests.Controllers
             postControllerMock = PostControllerMock.GetPostControllerMock(
                 _PostRepository.Object,
                 _chatRepository.Object,
-                _storageController.Object);
+                _notificationRepository.Object,
+                _storageRepository.Object
+                );
             _posts = PostControllerMock.GetAllPostMock();
+
+            _dbContext = PostControllerMock.GetDBContextMock();
+            repo = new PostRepository(_dbContext.Object);
         }
 
         [Test]
@@ -221,8 +223,6 @@ namespace KozossegiAPI.UnitTests.Controllers
         [Test]
         public async Task Put_ModifiesPostOnlyContentChanges_ReturnsOkResult()
         {
-            var fakeDbContext = PostControllerMock.GetDBContextMock();
-            var repo = new PostRepository(fakeDbContext.Object);
             var post = new Post()
             {
                 Id = 100    ,
@@ -240,7 +240,7 @@ namespace KozossegiAPI.UnitTests.Controllers
                 //    }
                 //}
             };
-            fakeDbContext.Object.Post.Add(post);
+            _dbContext.Object.Post.Add(post);
 
 
             _PostRepository.Setup(repo => repo.GetByIdAsync<Post>(It.IsAny<int>())).ReturnsAsync(post);
@@ -252,7 +252,7 @@ namespace KozossegiAPI.UnitTests.Controllers
                 postContent = "Changed.",
             };
             var result = await postControllerMock.Put(100, param);
-            var postChanges = fakeDbContext.Object.Post.FirstOrDefault(x => x.Id == 100);
+            var postChanges = _dbContext.Object.Post.FirstOrDefault(x => x.Id == 100);
 
             var okResult = result as OkResult;
 
