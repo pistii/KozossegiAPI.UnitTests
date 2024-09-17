@@ -131,9 +131,6 @@ namespace KozossegiAPI.UnitTests.Controllers
         [Test]
         public async Task Post_CreateNewPostWithImage_ReturnsOkObjectResult()
         {
-            var fakeDbContext = PostControllerMock.GetDBContextMock();
-            var repo = new PostRepository(fakeDbContext.Object);
-
             //Get the test image
             string currentDirectory = Environment.CurrentDirectory;
             string projectRoot = Directory.GetParent(currentDirectory).Parent.Parent.FullName;
@@ -143,13 +140,31 @@ namespace KozossegiAPI.UnitTests.Controllers
             var image = File.ReadAllBytes(absolutePath);
 
             #region Prepare the test data
-            Personal personal = new()
+            Personal author = new()
             {
                 id = 1,
                 firstName = "First",
                 lastName = "last",
             };
+
             string fileName = "randomFileName";
+
+            //The entity for the method parameter
+            var createPost = new CreatePostDto("name", "image/jpg", null)
+            {
+                userId = 1,
+                SourceId = 1,
+                postContent = "Test",
+            };
+
+            user user = new()
+            {
+                userID = 1,
+                email = "test@test.hu",
+                isActivated = true
+            };
+
+
             #endregion
 
             using (var stream = new MemoryStream(image.Length))
@@ -159,22 +174,27 @@ namespace KozossegiAPI.UnitTests.Controllers
                     Headers = new HeaderDictionary(),
                     ContentType = "image/jpg"
                 };
-                //The entity for the method parameter
-                var createPost = new CreatePostDto("name", "image/jpg", file)
-                {
-                    userId = 1,
-                    SourceId = 1,
-                    postContent = "Test",
-                };
 
-                _PostRepository.Setup(repo => repo.GetByIdAsync<Personal>(It.IsAny<int>())).ReturnsAsync(personal);
+                createPost.File = file;
+
+
+                _PostRepository.Setup(repo => repo.GetByIdAsync<Personal>(It.IsAny<int>())).ReturnsAsync(author);
                 _PostRepository.Setup(repo => repo.InsertSaveAsync<Post>(It.IsAny<Post>()));
-                _storageController.Setup(repo => repo.AddFile(It.IsAny<FileUpload>(), It.IsAny<BucketSelector>())).ReturnsAsync(fileName);
+                _storageRepository.Setup(repo => repo.AddFile(It.IsAny<FileUpload>(), It.IsAny<BucketSelector>())).ReturnsAsync(fileName);
                 _PostRepository.Setup(repo => repo.InsertAsync<MediaContent>(It.IsAny<MediaContent>()));
-
                 _PostRepository.Setup(repo => repo.InsertAsync<PersonalPost>(It.IsAny<PersonalPost>()));
                 _chatRepository.Setup(repo => repo.GetChatPartenterIds(It.IsAny<int>())).Returns(new List<int>());
                 _PostRepository.Setup(repo => repo.SaveAsync());
+
+
+                //User hozzáadása a headerhez
+                var httpContext = new DefaultHttpContext();
+                httpContext.Items["User"] = user;
+
+                postControllerMock.ControllerContext = new ControllerContext()
+                {
+                    HttpContext = httpContext                    
+                };
 
                 var result = await postControllerMock.Post(createPost);
                 var okResult = result.Result as OkObjectResult;
@@ -183,8 +203,7 @@ namespace KozossegiAPI.UnitTests.Controllers
                 Assert.IsInstanceOf<OkObjectResult>(okResult);
                 Assert.AreEqual(okResult.StatusCode, StatusCodes.Status200OK);
 
-                _PostRepository.VerifyAll();
-                _storageController.Verify(r => r.AddFile(It.IsAny<FileUpload>(), It.IsAny<BucketSelector>()), Times.Once());
+                _storageRepository.Verify(r => r.AddFile(It.IsAny<FileUpload>(), It.IsAny<BucketSelector>()), Times.Once());
                 _chatRepository.Verify(repo => repo.GetChatPartenterIds(It.IsAny<int>()), Times.Once());
             }
         }
