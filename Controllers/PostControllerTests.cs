@@ -101,17 +101,25 @@ namespace KozossegiAPI.UnitTests.Controllers
         [Test]
         public async Task Post_CreateNewPostWithoutFile_ReturnsOkObjectResult()
         {
-            var fakeDbContext = PostControllerMock.GetDBContextMock();
-            var repo = new PostRepository(fakeDbContext.Object);
+           
             Personal personal = new()
             {
                 id = 1,
                 firstName = "First",
                 lastName = "last",
             };
+
+            user user = new()
+            {
+                userID = 1,
+                email = "test@test.hu"
+            };
+
+
             _PostRepository.Setup(repo => repo.GetByIdAsync<Personal>(It.IsAny<int>())).ReturnsAsync(personal);
             _PostRepository.Setup(repo => repo.InsertAsync<Post>(It.IsAny<Post>()));
             _PostRepository.Setup(repo => repo.InsertAsync<PersonalPost>(It.IsAny<PersonalPost>()));
+            _chatRepository.Setup(repo => repo.GetChatPartenterIds(It.IsAny<int>())).Returns(new List<int>());
             _PostRepository.Setup(repo => repo.SaveAsync());
 
             var createPost = new CreatePostDto(null, null, null)
@@ -119,6 +127,14 @@ namespace KozossegiAPI.UnitTests.Controllers
                 userId = 1,
                 SourceId = 1,
                 postContent = "Test",
+            };
+            //User hozzáadása a headerhez
+            var httpContext = new DefaultHttpContext();
+            httpContext.Items["User"] = user;
+
+            postControllerMock.ControllerContext = new ControllerContext()
+            {
+                HttpContext = httpContext
             };
             var result = await postControllerMock.Post(createPost);
             var okResult = result.Result as OkObjectResult;
