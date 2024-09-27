@@ -1,13 +1,10 @@
-﻿using KozoskodoAPI.Data;
-using KozoskodoAPI.Models;
-using KozoskodoAPI.Repo;
+﻿using KozoskodoAPI.Repo;
+using KozossegiAPI.Data;
+using KozossegiAPI.DTOs;
+using KozossegiAPI.Interfaces;
+using KozossegiAPI.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace KozossegiAPI.UnitTests.Repo
 {
@@ -153,7 +150,7 @@ namespace KozossegiAPI.UnitTests.Repo
                 SetupDb(scope);
                 CreateFakeDb();
 
-                var result = await _chatRepository.GetAllChatRoomAsQuery(userId);
+                var result = (List<ChatRoomDto>)await _chatRepository.GetAllChatRoomAsQuery(userId);
 
                 Assert.That(result.Count, Is.EqualTo(userId == 1 ? 1 : 2));
                 Assert.That(result, Is.Not.Null);
