@@ -1,13 +1,11 @@
-﻿using KozoskodoAPI.Data;
-using KozoskodoAPI.Models;
-using KozoskodoAPI.Repo;
+﻿using KozossegiAPI.Auth;
+using KozossegiAPI.Data;
+using KozossegiAPI.Interfaces;
+using KozossegiAPI.Models;
+using KozossegiAPI.Repo;
+using KozossegiAPI.SMTP;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace KozossegiAPI.UnitTests.Repo
 {
@@ -16,18 +14,47 @@ namespace KozossegiAPI.UnitTests.Repo
     {
         private ServiceProvider _serviceProvider;
         private IUserRepository<user?> _userRepository;
-
+        private IJwtUtils _jwtUtils;
+        private IMailSender _mailSender;
         public DBContext _dbContext = new();
 
         [SetUp]
         public void Setup()
         {
             var services = new ServiceCollection();
+            var JwtAppSettings = new Auth.Helpers.AppSettings
+            {
+                Secret = "this-is-a-secret-dont-tell-anyone"
+            };
+
+            services.Configure<Auth.Helpers.AppSettings>(options =>
+            {
+                options.Secret = JwtAppSettings.Secret;
+            });
+
+            var mailAppSettings = new SMTP.Helpers.AppSettings
+            {
+                Email = "test",
+                Password = "test",
+                Server = "8.8.8.8",
+                Port = 123,
+                SSL = 123
+            };
+
+            services.Configure<SMTP.Helpers.AppSettings>(options =>
+            {
+                options.Email = mailAppSettings.Email;
+                options.Password = mailAppSettings.Password;
+                options.Server = mailAppSettings.Server;
+                options.Port = mailAppSettings.Port;
+                options.SSL = mailAppSettings.SSL;
+            });
 
             services.AddDbContext<DBContext>(options =>
                 options.UseInMemoryDatabase("TestDb"));
             services.AddScoped<IUserRepository<user>, UserRepository>();
-            services.AddScoped<IPersonalRepository, PersonalRepository>();
+            services.AddScoped<IJwtUtils, JwtUtils>();
+            services.AddScoped<IMailSender, SendMail>();
 
             _serviceProvider = services.BuildServiceProvider();
         }
@@ -116,6 +143,9 @@ namespace KozossegiAPI.UnitTests.Repo
             var scopedServices = scope.ServiceProvider;
             _userRepository = scopedServices.GetRequiredService<IUserRepository<user>>();
             _dbContext = scopedServices.GetRequiredService<DBContext>();
+
+            _jwtUtils = scopedServices.GetRequiredService<IJwtUtils>();
+            _mailSender = scopedServices.GetRequiredService<IMailSender>();
         }
 
         [Test]
