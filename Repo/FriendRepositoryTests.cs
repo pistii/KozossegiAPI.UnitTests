@@ -1,7 +1,8 @@
 ﻿using Google.Api;
-using KozoskodoAPI.Data;
-using KozoskodoAPI.Models;
-using KozoskodoAPI.Repo;
+using KozossegiAPI.Data;
+using KozossegiAPI.Interfaces;
+using KozossegiAPI.Models;
+using KozossegiAPI.Repo;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.Extensions.DependencyInjection;
@@ -21,25 +22,15 @@ namespace KozossegiAPI.UnitTests.Repo
     {
         private ServiceProvider _serviceProvider;
         private IFriendRepository _friendRepository;
-        private IPersonalRepository _personalRepository;
-        private IUserRepository<user> _userRepository;
-
         public DBContext _dbContext = new();
 
         [SetUp]
         public void Setup()
         {
             var services = new ServiceCollection();
-
-            // Using In-Memory database for testing
             services.AddDbContext<DBContext>(options =>
                 options.UseInMemoryDatabase("TestDb"));
-
             services.AddScoped<IFriendRepository, FriendRepository>();
-            services.AddScoped<IPersonalRepository, PersonalRepository>();
-            services.AddScoped<IUserRepository<user>, UserRepository>();
-
-
             _serviceProvider = services.BuildServiceProvider();
         }
 
@@ -47,10 +38,6 @@ namespace KozossegiAPI.UnitTests.Repo
         {
             var scopedServices = scope.ServiceProvider;
             _friendRepository = scopedServices.GetRequiredService<IFriendRepository>();
-            _personalRepository = scopedServices.GetRequiredService<IPersonalRepository>();
-            _userRepository = scopedServices.GetRequiredService<IUserRepository<user>>();
-
-
             _dbContext = scopedServices.GetRequiredService<DBContext>();
         }
 
@@ -169,15 +156,21 @@ namespace KozossegiAPI.UnitTests.Repo
                     firstName = "Gipsz",
                     lastName = "Jakab",
                     isMale = false,
+                    users = new()
+                    {
+                        isOnlineEnabled = false
+                    }
                 }
             };
 
+            var personals = expected.Select(p => new Personal_IsOnlineDto(p, true));
+
             var users = GetUsers();
 
-            mock.Setup(u => u.GetAll(1)).Returns(() => Task.FromResult(expected.AsEnumerable()));
+            mock.Setup(u => u.GetAll(1)).Returns(() => Task.FromResult(personals.AsEnumerable()));
             var result = await mock.Object.GetAll(1);
 
-            Assert.Contains(expected.FirstOrDefault(), result.ToList());
+            Assert.That(result, Is.EqualTo(personals));
             Assert.That(result, Is.Not.Null);
         }
 
