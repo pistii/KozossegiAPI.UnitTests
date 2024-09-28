@@ -1,9 +1,9 @@
-﻿using FirebaseAdmin.Auth;
-using KozoskodoAPI.Data;
-using KozoskodoAPI.Models;
-using KozoskodoAPI.Realtime;
-using KozoskodoAPI.Realtime.Connection;
-using KozoskodoAPI.Repo;
+﻿using KozossegiAPI.Data;
+using KozossegiAPI.Interfaces;
+using KozossegiAPI.Models;
+using KozossegiAPI.Realtime;
+using KozossegiAPI.Realtime.Connection;
+using KozossegiAPI.Repo;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -18,7 +18,7 @@ namespace KozossegiAPI.UnitTests.Repo
         private IFriendRepository _friendRepository;
         private readonly Mock<IHubContext<NotificationHub, INotificationClient>> _hubContextMock = new();
         private Mock<IMapConnections> _connections = new();
-        private NotificationRepository notificationRepository;
+        private INotificationRepository _notificationRepository;
         private DBContext _dbContext = new();
 
         [SetUp]
@@ -47,7 +47,7 @@ namespace KozossegiAPI.UnitTests.Repo
             var scopedServices = scope.ServiceProvider;
             _friendRepository = scopedServices.GetRequiredService<IFriendRepository>();
             _dbContext = scopedServices.GetRequiredService<DBContext>();
-            notificationRepository = new NotificationRepository(
+            _notificationRepository = new NotificationRepository(
                 _dbContext,
                 _friendRepository,
                 _hubContextMock.Object,
@@ -180,7 +180,7 @@ namespace KozossegiAPI.UnitTests.Repo
             await _dbContext.SaveChangesAsync();
 
 
-            await notificationRepository.BirthdayNotification();
+            await _notificationRepository.BirthdayNotification();
 
             var notification = await _dbContext.Notification.FirstAsync();
             Assert.That(notification, Is.Not.Null);
@@ -198,7 +198,7 @@ namespace KozossegiAPI.UnitTests.Repo
             await _dbContext.AddRangeAsync(notifications);
             await _dbContext.SaveChangesAsync();
 
-            var result = await notificationRepository.GetDeletableNotifications();
+            var result = await _notificationRepository.GetDeletableNotifications();
 
             Assert.That(result, Is.Not.Null);
             Assert.That(result.Count(), Is.EqualTo(2));
@@ -215,7 +215,7 @@ namespace KozossegiAPI.UnitTests.Repo
             await _dbContext.Notification.AddRangeAsync(notifications);
             await _dbContext.SaveChangesAsync();
 
-            await notificationRepository.SelectNotification();
+            await _notificationRepository.SelectNotification();
 
             var remainingNotifications = await _dbContext.Notification.ToListAsync();
             Assert.That(remainingNotifications.Count, Is.EqualTo(5));
@@ -233,9 +233,9 @@ namespace KozossegiAPI.UnitTests.Repo
             await _dbContext.SaveChangesAsync();
 
             //in default case shouldn't be more notification
-            await notificationRepository.SelectNotification();
+            await _notificationRepository.SelectNotification();
 
-            var result = await notificationRepository.GetAll_PersonNotifications(1);
+            var result = await _notificationRepository.GetAll_PersonNotifications(1);
 
             Assert.That(result.Count, Is.EqualTo(4));
             Assert.That(result.All(i => i.ReceiverId == 1));
