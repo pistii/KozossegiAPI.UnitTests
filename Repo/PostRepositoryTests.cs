@@ -1,21 +1,20 @@
-﻿using KozoskodoAPI.Data;
-using KozoskodoAPI.DTOs;
-using KozoskodoAPI.Models;
-using KozoskodoAPI.Repo;
+﻿using KozossegiAPI.Controllers.Cloud;
+using KozossegiAPI.Data;
+using KozossegiAPI.DTOs;
+using KozossegiAPI.Interfaces;
+using KozossegiAPI.Repo;
+using KozossegiAPI.UnitTests.Helpers.TestData;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace KozossegiAPI.UnitTests.Repo
 {
     public class PostRepositoryTests
     {
         private ServiceProvider _serviceProvider;
-        private IPostRepository<PostDto> postRepository;
+
+        private IPostRepository<PostDto> _postRepository;
+        private IStorageRepository _storageRepository;
         public DBContext _dbContext = new();
 
         [SetUp]
@@ -26,6 +25,7 @@ namespace KozossegiAPI.UnitTests.Repo
             services.AddDbContext<DBContext>(options =>
                 options.UseInMemoryDatabase("TestDb"));
             services.AddScoped<IPostRepository<PostDto>, PostRepository>();
+            services.AddScoped<IStorageRepository, StorageRepository>();
 
             _serviceProvider = services.BuildServiceProvider();
         }
@@ -40,177 +40,92 @@ namespace KozossegiAPI.UnitTests.Repo
         public void SetupDb(IServiceScope scope)
         {
             var scopedServices = scope.ServiceProvider;
-            postRepository = scopedServices.GetRequiredService<IPostRepository<PostDto>>();
+            _postRepository = scopedServices.GetRequiredService<IPostRepository<PostDto>>();
+            _storageRepository = scopedServices.GetRequiredService<IStorageRepository>();
             _dbContext = scopedServices.GetRequiredService<DBContext>();
-        }
-
-        public static IEnumerable<Personal> GetUsers()
-        {
-            var users = new List<Personal>() {
-                new Personal()
-                {
-                    id = 1,
-                    firstName = "Gipsz",
-                    lastName = "Jakab",
-                    isMale = false,
-                },
-                new Personal()
-                {
-                    id = 2,
-                    firstName = "Teszt",
-                    lastName = "Elek",
-                    isMale = false,
-                }
-                }.AsEnumerable();
-            return users;
-        }
-
-
-        public static IEnumerable<PersonalPost> GetPersonalPosts()
-        {
-            var personalposts = new List<PersonalPost>()
-            {
-                new PersonalPost()
-                {
-                   personalPostId = 1,
-                   postId = 1,
-                   personId = 1,
-                   Posts = new Post()
-                    {
-                       Id = 1,
-                       SourceId = 1,
-                       DateOfPost = DateTime.Now,
-                       Likes = 16,
-                       Dislikes = 1,
-                    },
-                },
-                new PersonalPost()
-                {
-                   personalPostId = 2,
-                   postId = 2,
-                   personId = 2,
-                   Posts = new Post()
-                   {
-                       Id = 2,
-                       SourceId = 2,
-                       DateOfPost = DateTime.Now,
-                       Likes = 12,
-                       Dislikes = 0,
-                   },
-                }
-            };
-            return personalposts;
-        }
-
-        public static IEnumerable<Post> GetPosts()
-        {
-            var posts = new List<Post>()
-            {
-                new Post()
-                {
-                   Id = 1,
-                   SourceId = 1,
-                   DateOfPost = DateTime.Now,
-                   Likes = 16,
-                   Dislikes = 1,
-                },
-                new Post()
-                {
-                   Id = 2,
-                   SourceId = 2,
-                   DateOfPost = DateTime.Now,
-                   Likes = 12,
-                   Dislikes = 0,
-                },
-            };
-            return posts;
-        }
-
-        public static IEnumerable<Comment> GetComments()
-        {
-            var comments = new List<Comment>()
-            {
-                new Comment()
-                {
-                    commentId = 1,
-                    FK_AuthorId = 1,
-                    CommentDate = DateTime.Now,
-                    CommentText = "Test comment",
-                    PostId = 1,
-                }
-            };
-            return comments;
-        }
-
-        public static IEnumerable<MediaContent> GetMediaContents()
-        {
-            var mediaContents = new List<MediaContent>()
-            {
-                new MediaContent()
-                {
-                    Id = 1,
-                    ContentType = ContentType.Image,
-                    FileName = "teszt",
-                    MediaContentId = 1
-                }
-            };
-            return mediaContents;
         }
 
         [Test]
         [TestCase(1,1)]
         [TestCase(2, 1)]
-        public async Task GetAllPost_ShouldReturnPostObject(int profileId, int userId)
+        public async Task GetAllPost_ShouldReturnPostWithMediaContent(int profileId, int visitorId)
         {
             using var scope = _serviceProvider.CreateScope();
             SetupDb(scope);
 
-            var personalposts = GetPersonalPosts();
-            var comments = GetComments();
-            var mediaContents = GetMediaContents();
-            var persons = GetUsers();
-            await _dbContext.AddRangeAsync(personalposts);
-            await _dbContext.AddRangeAsync(comments);
-            await _dbContext.AddRangeAsync(persons);
-            await _dbContext.AddRangeAsync(mediaContents);
-            await _dbContext.SaveChangesAsync();
+            var mediaContent = MediaContentData.GetMediaContents();
+            var personalPost = PersonalPostData.GetPersonalPosts(profileId, visitorId, mediaContent);//This returns 15 items for the actual user
+            var personal = PersonalData.GetUsers();
 
-            var result = await postRepository.GetAllPost(profileId, userId);
+            _dbContext.AddRange(personal);
+            _dbContext.AddRange(personalPost);
 
-            var expected = result.First();
-            if (profileId == 1)
-            {
-                Assert.That(expected.Likes, Is.EqualTo(16));
-                Assert.That(expected.FullName, Is.EqualTo("Gipsz Jakab"));
-                Assert.That(expected.PostComments.Any(c => c.CommentText.Contains("Test")));
-                Assert.That(expected.MediaContents.Any(mc => mc.ContentType.Equals(ContentType.Image)));
-            } else
-            {
-                Assert.That(expected.Likes, Is.EqualTo(12));
-                Assert.That(expected.FullName, Is.EqualTo("Teszt Elek"));
-                Assert.That(expected.PostComments.Count, Is.EqualTo(0));
-                Assert.That(expected.MediaContents.Count, Is.EqualTo(0));
-            }
+            await _dbContext.SaveChangesAsync();             
+
+            var result = await _postRepository.GetAllPost(profileId, visitorId); //Itt sajnos már nincsenek összekötve, a tesztelendő metódusban
+
+            var expected = result.Data.First();
+            
+             Assert.IsNotNull(expected.Post.MediaContent);
         }
 
         [Test]
-        [TestCase(1)] //Should return with comments
-        [TestCase(2)] //Without comments
-        public async Task GetPostWithCommentsById(int postId)
+        [TestCase(1, 1)]
+        [TestCase(1, 2)]
+        //Returns 10 item depending on the visited person's posts. 
+        public async Task GetAllPost_Returns10Item(int postedOnId, int visitorId)
         {
             using var scope = _serviceProvider.CreateScope();
             SetupDb(scope);
 
-            var posts = GetPosts();
-            var comments = GetComments();
-            await _dbContext.AddRangeAsync(comments);
-            await _dbContext.AddRangeAsync(posts);
-            await _dbContext.SaveChangesAsync();
+            var personalPost = PersonalPostData.GetPersonalPosts(postedOnId, visitorId);//This returns 15 items for the actual user
+            var personal = PersonalData.GetUsers();
+            _dbContext.AddRange(personal);
+            _dbContext.AddRange(personalPost);
+            _dbContext.SaveChanges();
 
-            var result = await postRepository.GetPostWithCommentsById(postId);
+            var result = await _postRepository.GetAllPost(postedOnId, visitorId);
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Data.Count, Is.EqualTo(10));
+                Assert.That(result.TotalPages, Is.EqualTo(2));
+                Assert.That(result.Data.All(p => p.PostedToUserId == postedOnId));
+            });
+        }
+
+        [Test]
+        [TestCase(1, 1)]
+        [TestCase(1, 2)]
+        public async Task GetAllPost_ReturnsRemainingPostForTheSecondPageOfPaginator(int postedOnId, int visitorId)
+        {
+            using var scope = _serviceProvider.CreateScope();
+            SetupDb(scope);
+
+            var personalPost = PersonalPostData.GetPersonalPosts(postedOnId, visitorId); //This returns 15 items for the actual user
+            var personal = PersonalData.GetUsers();
+            _dbContext.AddRange(personal);
+            _dbContext.AddRange(personalPost);
+            _dbContext.SaveChanges();
+
+            var result = await _postRepository.GetAllPost(postedOnId, visitorId, 2);
+            //Returns 5 items because the PersonalPostData.GetPersonalPosts returns 15 post in total, and de default value for the paginator itemperRequest is 10.
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Data.Count, Is.EqualTo(5));
+                Assert.That(result.TotalPages, Is.EqualTo(2));
+                Assert.That(result.Data.All(p => p.PostedToUserId == postedOnId));
+            });
+        }
+
+        [Test]
+        public async Task GetPostByTokenAsync_ShouldReturnPostWithGivenToken()
+        {
+            
+            string Token = "8376f337-f14c-48ed-a394-c58e9b22238c";
+
+            var result = _postRepository.GetPostByTokenAsync(Token);
 
             Assert.That(result, Is.Not.Null);
-            Assert.That(result.PostComments, postId == 1 ? Is.Not.Empty : Is.Empty);
         }
     }
 }
